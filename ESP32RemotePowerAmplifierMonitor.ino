@@ -41,7 +41,9 @@
 #define DEBUG_ETHERNET_WEBSERVER_PORT       Serial
 
 // Debug Level from 0 to 4
-#define _ETHERNET_WEBSERVER_LOGLEVEL_       1
+#define _ETHERNET_WEBSERVER_LOGLEVEL_      3
+#define NO  0
+#define YES 1
 
 #include <WebServer_WT32_ETH01.h>
 #include "index.h"  //Web page header file
@@ -54,9 +56,17 @@ uint8_t temprature_sens_read();
 }
 #endif
 uint8_t temprature_sens_read();
+// milliVolt         0  100  200  300  400  500  600  700   800   900  1000  1100  1200  1300  1400  1500  1600  1700  1800  1900  2000  2100  2200  2300  2400  2500  2600   2700   2800   2900   3000   3100   3200   3300   3400   3500   3600
+int milliwatt [ ] = {0,  50, 100, 200, 300, 400, 500, 700, 1000, 1000, 1000, 1000, 2000, 2000, 2000, 2000, 3000, 3000, 4000, 4000, 5000, 6000, 6000, 7000, 7000, 8000, 9000, 10000, 11000, 11000, 12000, 13000, 14000, 15000, 17000, 19000, 20000};
+
+int voltage_fwd,voltage_ref, voltage_drv;
+int voltage_fwd_peak =0,voltage_ref_peak =0, voltage_drv_peak =0; 
+int fwd_power=0, ref_power=0;
+byte iii=0;
 
 int IO2_FWD = 2;
 int IO4_REF = 4;
+int IO12_DRV = 12;
 
 WebServer server(80);
 
@@ -67,6 +77,40 @@ IPAddress mySN(255, 255, 255, 0);
 
 // Google DNS Server IP
 IPAddress myDNS(8, 8, 8, 8);
+
+int millivolt_to_milliwatt(int mv)
+{
+  int last = 0;
+  for (int i=0; i<sizeof milliwatt/sizeof milliwatt[0]; i++) {
+    if ((i*100) <  mv) last = milliwatt[i];
+    else break;
+  }
+  return last;
+}
+
+void read_directional_couplers()
+{   
+  for(iii=0; iii<20; iii++)                                     // Take 20 samples and save the highest value
+  { voltage_fwd = analogReadMilliVolts(IO2_FWD);
+    voltage_ref = analogReadMilliVolts(IO4_REF);
+    voltage_drv = analogReadMilliVolts(IO12_DRV);
+    //Serial.println(String(voltage_fwd));
+    if(voltage_fwd > voltage_fwd_peak) voltage_fwd_peak = voltage_fwd;    // safe the peak of 10 measurements
+    if(voltage_ref > voltage_ref_peak) voltage_ref_peak = voltage_ref;  
+    if(voltage_drv > voltage_drv_peak) voltage_drv_peak = voltage_drv;
+  }
+  voltage_fwd = voltage_fwd_peak;                                         // use peak voltage for processing
+  voltage_ref = voltage_ref_peak;
+  voltage_drv = voltage_drv_peak;
+
+  fwd_power = millivolt_to_milliwatt(voltage_fwd);
+  ref_power = millivolt_to_milliwatt(voltage_ref);
+  
+  voltage_fwd_peak = 0;                                                      // set peak voltages back to 0
+  voltage_ref_peak = 0;
+  voltage_drv_peak = 0;
+
+}
 
 void handleRoot()
 {
@@ -95,13 +139,31 @@ void handleNotFound()
 }
 
 void handleFWD() {
-  String fwdValue = String(analogReadMilliVolts(IO2_FWD));
-  server.send(200, "text/plane", fwdValue); //Send ADC value only to client ajax request
+  read_directional_couplers();
+  //String fwdValue = String(voltage_fwd);
+  //String fwdPower = String(millivolt_to_milliwatt(voltage_fwd));
+  String output = String(voltage_fwd) + "/" + String(fwd_power);
+  server.send(200, "text/plane", output); //Send ADC value only to client ajax request
 }
 
 void handleREF() {
-  String refValue = String(analogReadMilliVolts(IO4_REF));
-  server.send(200, "text/plane", refValue); //Send ADC value only to client ajax request
+  read_directional_couplers();
+  //String refValue = String(voltage_ref);
+  //String refPower = String(millivolt_to_milliwatt(voltage_ref));
+  String output = String(voltage_ref) + "/" + String(ref_power);
+  server.send(200, "text/plane", output); //Send ADC value only to client ajax request
+}
+
+void handleDRV() {
+  read_directional_couplers();
+  String drvValue = String(voltage_drv);
+  server.send(200, "text/plane", drvValue); //Send ADC value only to client ajax request
+}
+
+void handleSWR(){
+  read_directional_couplers();
+  double swr = (1 + sqrt(ref_power/fwd_power)) / (1 - sqrt(ref_power/fwd_power));
+  server.send(200, "text/plane", String(swr)); //Send ADC value only to client ajax reques
 }
 
 void handleTEMP() {
@@ -136,6 +198,8 @@ void setup()
   server.on(F("/"), handleRoot);
   server.on("/readFWD", handleFWD);
   server.on("/readREF", handleREF);
+  server.on("/readDRV", handleDRV);
+  server.on("/readSWR", handleSWR);
   server.on("/readTEMP", handleTEMP);
 
   server.onNotFound(handleNotFound);
