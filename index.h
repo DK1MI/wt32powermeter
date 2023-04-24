@@ -3,7 +3,7 @@ const char MAIN_page[] PROGMEM = R"=====(
 <html>
 <style>
 .card{
-     max-width: 250px;
+     max-width: 500px;
      min-height: 200px;
      background: #02b875;
      padding: 30px;
@@ -25,6 +25,16 @@ const char MAIN_page[] PROGMEM = R"=====(
 <div class="card">
   <h1>REF Voltage</h1>
   <h1><span id="REFValue">0</span>mV</h1>
+</div>
+
+<div class="card">
+  <h1>DRV Voltage</h1>
+  <h1><span id="DRVValue">0</span>mV</h1>
+</div>
+
+<div class="card">
+  <h1>SWR</h1>
+  <h1><span id="SWRValue">0</span>mV</h1>
 </div>
 
 <div class="card">
@@ -61,6 +71,28 @@ function getREF() {
     }
   };
   xhttp.open("GET", "readREF", true);
+  xhttp.send();
+}
+function getDRV() {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("DRVValue").innerHTML =
+      this.responseText;
+    }
+  };
+  xhttp.open("GET", "readDRV", true);
+  xhttp.send();
+}
+function getSWR() {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("SWRValue").innerHTML =
+      this.responseText;
+    }
+  };
+  xhttp.open("GET", "readSWR", true);
   xhttp.send();
 }
 function getTEMP() {
