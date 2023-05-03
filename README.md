@@ -1,3 +1,3 @@
-# ESP32RemotePowerAmplifierMonitor
+# wt32pamon
 
-ESP32 based remote power amplifier monitor.
+WT32-ETH0 based remote power amplifier monitor.
