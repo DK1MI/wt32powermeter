@@ -6,7 +6,7 @@
 
   Based on and modified from ESP8266 https://github.com/esp8266/Arduino/releases
   Based on Built by Khoi Hoang https://github.com/khoih-prog/WebServer_WT32_ETH01
-  Adapted by Michael Clemens
+  Adapted by Michael Clemens, DK1MI
   Licensed under MIT license
 
   Copyright (c) 2015, Majenko Technologies
@@ -46,7 +46,11 @@
 #define YES 1
 
 #include <WebServer_WT32_ETH01.h>
-#include "index.h"  //Web page header file
+#include "index.h"  // Main Web page header file
+#include "config.h"  // Config Web page header file
+#include <Preferences.h>
+
+Preferences preferences;
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,6 +67,10 @@ int voltage_fwd,voltage_ref, voltage_drv;
 int voltage_fwd_peak =0,voltage_ref_peak =0, voltage_drv_peak =0; 
 int fwd_power=0, ref_power=0;
 byte iii=0;
+
+String conf_content;
+String conf_translate_table;
+String del_action = "";
 
 int IO2_FWD = 2;
 int IO4_REF = 4;
@@ -172,9 +180,80 @@ void handleTEMP() {
   server.send(200, "text/plane", tempValue); //Send ADC value only to client ajax request
 }
 
+void handleCONFIG() {
+  //String s = CONFIG_page; //Read HTML contents
+  String x = "10";
+  unsigned int stored_val = preferences.getUInt(x.c_str(), 0);
+  conf_content = "<!DOCTYPE HTML>\r\n<html>Welcome to Wifi Credentials Update page";
+  conf_content += "<form action=\"/list\" method=\"POST\"><input type=\"submit\" value=\"list\">";
+  conf_content += "<p>";
+  conf_content += "Action: " + del_action;
+  conf_content += "Added:  " + String(stored_val);
+  conf_content += "<p>";
+  conf_content += conf_translate_table;
+  conf_content += "</form>";
+  conf_content += "</p><form method='get' action='add'><label>Add new Volt/Watt Translation: </label><input name='volt' length=32><input name='watt' length=64><input type='submit'></form>";
+  conf_content += "</p><form method='get' action='/'><button class='back' value='back' name='back' type='submit'>Back to Dashboard</button></form>";
+  conf_content += "</html>";
+  server.send(200, "text/html", conf_content);
+  //server.send(200, "text/html", s); //Send web page
+}
+
+void handleLIST() {
+  del_action = server.arg("delete");
+  if (del_action != "")
+    preferences.remove(del_action.c_str());
+  
+  conf_translate_table = "<table border=1>";
+  conf_translate_table += "<thead><tr><td>Volt</td><td>Watt</td><td>Delete</td></tr></thead>";
+
+  for (int i=0; i<3400; i++) {
+    unsigned int stored_val = preferences. getUInt(String(i).c_str(), 0);
+    if (stored_val > 0) {
+      conf_translate_table += "<tr><td>";
+      conf_translate_table += String(i);
+      conf_translate_table += "</td><td>";
+      conf_translate_table += String(stored_val);
+      conf_translate_table += "</td><td>";
+      conf_translate_table += "<button class='delete' value='" + String(i) + "' name='delete' type='submit'>delete</button>";
+      conf_translate_table += "</td></tr>";   
+    } 
+  }
+
+
+  /*
+  for (int i=0; i<sizeof milliwatt/sizeof milliwatt[0]; i++) {
+    conf_translate_table += "<tr><td>";
+    conf_translate_table += String(i);
+    conf_translate_table += "</td><td>";
+    conf_translate_table += String(milliwatt[i]);
+    conf_translate_table += "</td><td>";
+    conf_translate_table += "<button class='delete' value='" + String(i) + "' name='delete' type='submit'>delete</button>";
+    conf_translate_table += "</td></tr>";
+  }
+  */
+
+  conf_translate_table += "</table>";
+  //server.send(200, "text/html", conf_translate_table); //Send web page
+  //conf_content = "<!DOCTYPE HTML>\r\n<html>go back";
+  //server.send(200, "text/html", conf_content);
+  handleCONFIG();
+}
+
+void handleADD() {
+  String volt = server.arg("volt");
+  String watt = server.arg("watt");
+  preferences.putUInt(volt.c_str(), watt.toInt());
+  del_action = volt + "/" + watt;
+  handleLIST();
+}
+
+
+
 void setup()
 {
   analogReadResolution(12);
+  preferences.begin("translation", false); 
   Serial.begin(115200);
 
   while (!Serial);
@@ -201,6 +280,10 @@ void setup()
   server.on("/readDRV", handleDRV);
   server.on("/readSWR", handleSWR);
   server.on("/readTEMP", handleTEMP);
+  server.on("/config", handleCONFIG);
+  server.on("/list", handleLIST);
+  server.on("/add", handleADD);
+
 
   server.onNotFound(handleNotFound);
   server.begin();
