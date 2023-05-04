@@ -2,8 +2,13 @@ const char MAIN_page[] PROGMEM = R"=====(
 <!DOCTYPE html>
 <html>
 <style>
-.card{
+.row {
+  width: 100%;
+  margin: 0 auto;
+}
+.box{
      max-width: 500px;
+     min-width: 250px;
      min-height: 200px;
      background: #02b875;
      padding: 30px;
@@ -11,33 +16,35 @@ const char MAIN_page[] PROGMEM = R"=====(
      color: #FFF;
      margin:20px;
      box-shadow: 0px 2px 18px -4px rgba(0,0,0,0.75);
+     display: inline-block;
 }
 
 </style>
 <body>
 
-
-<div class="card">
+<div class="row">
+<div class="box">
   <h1>FWD Power</h1>
   <h1><span id="FWDValue">0</span> dBm</h1>
 </div>
 
-<div class="card">
+<div class="box">
   <h1>REF Power</h1>
   <h1><span id="REFValue">0</span> dBm</h1>
 </div>
 
-<div class="card">
+<div class="box">
   <h1>SWR</h1>
   <h1><span id="SWRValue">0</span></h1>
 </div>
 
-<div class="card">
+<div class="box">
   <h1>Temperature</h1> 
   <h1><span id="TEMPValue">0</span>&#8451;</h1>
 </div>
+</div>
 
-<form method='get' action='config'><button class='config' value='config' name='config' type='submit'>Configuration</button></form>
+<form method='post' action='config'><button class='config' value='config' name='config' type='submit'>Configuration</button></form>
 
 <script>
 
@@ -45,6 +52,7 @@ setInterval(function() {
   // Call a function repetatively with 1 Second interval
   getFWD();
   getREF();
+  getSWR();
   getTEMP();
 }, 1000); //1000mSeconds update rate
 
