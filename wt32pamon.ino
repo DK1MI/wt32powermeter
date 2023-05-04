@@ -50,7 +50,11 @@
 #include "config.h"  // Config Web page header file
 #include <Preferences.h>
 
-Preferences preferences;
+Preferences translation;
+Preferences config;
+
+String config_items [ ] = {"show_fwd", "show_ref", "show_swr", "show_mV", "show_dBm", "show_watt"};
+String config_defaults [ ] = {"true", "true", "true", "true", "false", "true"};
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,18 +67,18 @@ uint8_t temprature_sens_read();
 // milliVolt         0  100  200  300  400  500  600  700   800   900  1000  1100  1200  1300  1400  1500  1600  1700  1800  1900  2000  2100  2200  2300  2400  2500  2600   2700   2800   2900   3000   3100   3200   3300   3400   3500   3600
 int milliwatt [ ] = {0,  50, 100, 200, 300, 400, 500, 700, 1000, 1000, 1000, 1000, 2000, 2000, 2000, 2000, 3000, 3000, 4000, 4000, 5000, 6000, 6000, 7000, 7000, 8000, 9000, 10000, 11000, 11000, 12000, 13000, 14000, 15000, 17000, 19000, 20000};
 
-int voltage_fwd,voltage_ref, voltage_drv;
-int voltage_fwd_peak =0,voltage_ref_peak =0, voltage_drv_peak =0; 
+int voltage_fwd,voltage_ref;
+int voltage_fwd_peak =0,voltage_ref_peak =0; 
 int fwd_power=0, ref_power=0;
 byte iii=0;
 
 String conf_content;
-String conf_translate_table;
+String conf_translate_table = "";
+String conf_config_table = "";
 String del_action = "";
 
 int IO2_FWD = 2;
 int IO4_REF = 4;
-int IO12_DRV = 12;
 
 WebServer server(80);
 
@@ -86,12 +90,21 @@ IPAddress mySN(255, 255, 255, 0);
 // Google DNS Server IP
 IPAddress myDNS(8, 8, 8, 8);
 
-int millivolt_to_milliwatt(int mv)
+int millivolt_to_dbm(int mv)
 {
   int last = 0;
-  for (int i=0; i<sizeof milliwatt/sizeof milliwatt[0]; i++) {
-    if ((i*100) <  mv) last = milliwatt[i];
-    else break;
+  for (int i=0; i<3400; i++) {
+    unsigned int stored_val = translation.getUInt(String(i).c_str(), 0);
+    //Serial.print(String(stored_val));
+    if (stored_val > 0) {
+      //Serial.print(String(stored_val));
+      if (i <  mv) {
+        //Serial.print("bigger");
+        last = stored_val;
+      } else {
+        break;
+      }
+    }
   }
   return last;
 }
@@ -101,22 +114,21 @@ void read_directional_couplers()
   for(iii=0; iii<20; iii++)                                     // Take 20 samples and save the highest value
   { voltage_fwd = analogReadMilliVolts(IO2_FWD);
     voltage_ref = analogReadMilliVolts(IO4_REF);
-    voltage_drv = analogReadMilliVolts(IO12_DRV);
     //Serial.println(String(voltage_fwd));
     if(voltage_fwd > voltage_fwd_peak) voltage_fwd_peak = voltage_fwd;    // safe the peak of 10 measurements
     if(voltage_ref > voltage_ref_peak) voltage_ref_peak = voltage_ref;  
-    if(voltage_drv > voltage_drv_peak) voltage_drv_peak = voltage_drv;
   }
   voltage_fwd = voltage_fwd_peak;                                         // use peak voltage for processing
   voltage_ref = voltage_ref_peak;
-  voltage_drv = voltage_drv_peak;
 
-  fwd_power = millivolt_to_milliwatt(voltage_fwd);
-  ref_power = millivolt_to_milliwatt(voltage_ref);
+  // TODO: dbm in W umrechnen
+
+
+  fwd_power = millivolt_to_dbm(voltage_fwd);
+  ref_power = millivolt_to_dbm(voltage_ref);
   
   voltage_fwd_peak = 0;                                                      // set peak voltages back to 0
   voltage_ref_peak = 0;
-  voltage_drv_peak = 0;
 
 }
 
@@ -150,7 +162,8 @@ void handleFWD() {
   read_directional_couplers();
   //String fwdValue = String(voltage_fwd);
   //String fwdPower = String(millivolt_to_milliwatt(voltage_fwd));
-  String output = String(voltage_fwd) + "/" + String(fwd_power);
+  //String output = String(voltage_fwd) + "/" + String(fwd_power);
+  String output = String(fwd_power);
   server.send(200, "text/plane", output); //Send ADC value only to client ajax request
 }
 
@@ -158,14 +171,9 @@ void handleREF() {
   read_directional_couplers();
   //String refValue = String(voltage_ref);
   //String refPower = String(millivolt_to_milliwatt(voltage_ref));
-  String output = String(voltage_ref) + "/" + String(ref_power);
+  //String output = String(voltage_ref) + "/" + String(ref_power);
+  String output = String(ref_power);
   server.send(200, "text/plane", output); //Send ADC value only to client ajax request
-}
-
-void handleDRV() {
-  read_directional_couplers();
-  String drvValue = String(voltage_drv);
-  server.send(200, "text/plane", drvValue); //Send ADC value only to client ajax request
 }
 
 void handleSWR(){
@@ -181,34 +189,34 @@ void handleTEMP() {
 }
 
 void handleCONFIG() {
-  //String s = CONFIG_page; //Read HTML contents
-  String x = "10";
-  unsigned int stored_val = preferences.getUInt(x.c_str(), 0);
-  conf_content = "<!DOCTYPE HTML>\r\n<html>Welcome to Wifi Credentials Update page";
-  conf_content += "<form action=\"/list\" method=\"POST\"><input type=\"submit\" value=\"list\">";
+  if (conf_translate_table == "") {
+    build_translate_table();
+  }
+  if (conf_config_table == "") {
+    build_config_table();
+  }
+  
+  conf_content = "<!DOCTYPE HTML>\r\n<html>";
+  conf_content += "<h1>Configuration</h1>";
   conf_content += "<p>";
-  conf_content += "Action: " + del_action;
-  conf_content += "Added:  " + String(stored_val);
+  conf_content += "<h3>Translation from mV to dBm</h3>";
+  conf_content +=  conf_translate_table;
   conf_content += "<p>";
-  conf_content += conf_translate_table;
-  conf_content += "</form>";
-  conf_content += "</p><form method='get' action='add'><label>Add new Volt/Watt Translation: </label><input name='volt' length=32><input name='watt' length=64><input type='submit'></form>";
-  conf_content += "</p><form method='get' action='/'><button class='back' value='back' name='back' type='submit'>Back to Dashboard</button></form>";
+  conf_content += "<h3>General Configuration Items</h3>";
+  conf_content += "<p>";
+  conf_content += conf_config_table;
+  conf_content += "</p><form method='POST' action='/'><button class='back' value='back' name='back' type='submit'>Back to Dashboard</button></form>";
   conf_content += "</html>";
   server.send(200, "text/html", conf_content);
-  //server.send(200, "text/html", s); //Send web page
 }
 
-void handleLIST() {
-  del_action = server.arg("delete");
-  if (del_action != "")
-    preferences.remove(del_action.c_str());
-  
-  conf_translate_table = "<table border=1>";
-  conf_translate_table += "<thead><tr><td>Volt</td><td>Watt</td><td>Delete</td></tr></thead>";
+void build_translate_table() {
+  conf_translate_table = "<form action=\"/modtt\" method=\"POST\">";
+  conf_translate_table += "<table border=1>";
+  conf_translate_table += "<thead><tr><td>millivolt (mV)</td><td>decibel-milliwatts (dBm)</td><td>Action</td></tr></thead>";
 
   for (int i=0; i<3400; i++) {
-    unsigned int stored_val = preferences. getUInt(String(i).c_str(), 0);
+    unsigned int stored_val = translation.getUInt(String(i).c_str(), 0);
     if (stored_val > 0) {
       conf_translate_table += "<tr><td>";
       conf_translate_table += String(i);
@@ -219,41 +227,66 @@ void handleLIST() {
       conf_translate_table += "</td></tr>";   
     } 
   }
-
-
-  /*
-  for (int i=0; i<sizeof milliwatt/sizeof milliwatt[0]; i++) {
-    conf_translate_table += "<tr><td>";
-    conf_translate_table += String(i);
-    conf_translate_table += "</td><td>";
-    conf_translate_table += String(milliwatt[i]);
-    conf_translate_table += "</td><td>";
-    conf_translate_table += "<button class='delete' value='" + String(i) + "' name='delete' type='submit'>delete</button>";
-    conf_translate_table += "</td></tr>";
-  }
-  */
-
-  conf_translate_table += "</table>";
-  //server.send(200, "text/html", conf_translate_table); //Send web page
-  //conf_content = "<!DOCTYPE HTML>\r\n<html>go back";
-  //server.send(200, "text/html", conf_content);
+  conf_translate_table += "<tr><td><input name='volt' length=16></td><td><input name='dBm' length=16></td><td><input type='submit'></td></tr>";
+  conf_translate_table += "</table></form>"; 
   handleCONFIG();
 }
 
-void handleADD() {
-  String volt = server.arg("volt");
-  String watt = server.arg("watt");
-  preferences.putUInt(volt.c_str(), watt.toInt());
-  del_action = volt + "/" + watt;
-  handleLIST();
+void build_config_table() {
+  conf_config_table = "<form action=\"/modcfg\" method=\"POST\">";
+  conf_config_table += "<table border=1>";
+  conf_config_table += "<thead><tr><td>Key</td><td>Value</td></td><td>Action</td></tr></thead>";
+  for (int i=0; i<sizeof config_items/sizeof config_items[0]; i++) {
+    String stored_val = config.getString(config_items[i].c_str(), "xxx");
+    if (stored_val == "xxx"){
+      config.putString(config_items[i].c_str(), config_defaults[i]);
+      stored_val = config.getString(config_items[i].c_str(), "");
+    }
+    conf_config_table += "<tr><td>";
+    conf_config_table += config_items[i];
+    conf_config_table += "</td><td>";
+    conf_config_table += String(stored_val);
+    conf_config_table += "</td><td>";
+    conf_config_table += "</td></tr>"; 
+  }
+  conf_config_table += "<tr><td><input name='conf_key' length=16></td><td><input name='conf_value' length=16></td><td><input type='submit'></td></tr>";
+  conf_config_table += "</table></form>";
+  handleCONFIG();
 }
 
 
+void handleMODTT() {
+  String volt = server.arg("volt");
+  String dBm = server.arg("dBm");
+  del_action = server.arg("delete");
+  if (del_action != "") {
+    translation.remove(del_action.c_str());
+  } else if (volt != "" and dBm != "") {
+     translation.putUInt(volt.c_str(), dBm.toInt());
+  }
+  build_translate_table();
+}
+
+void handleMODCFG() {
+  String key = server.arg("conf_key");
+  String value = server.arg("conf_value");
+  for (int i=0; i<sizeof config_items/sizeof config_items[0]; i++) {
+    if (config_items[i] == key) {
+      if (key != "" and value != "") {
+        config.putString(config_items[i].c_str(), value);
+        conf_config_table = "";
+        break;
+      }
+    }
+  }
+  build_config_table();
+}
 
 void setup()
 {
   analogReadResolution(12);
-  preferences.begin("translation", false); 
+  translation.begin("translation", false);
+  config.begin("config", false);
   Serial.begin(115200);
 
   while (!Serial);
@@ -277,12 +310,11 @@ void setup()
   server.on(F("/"), handleRoot);
   server.on("/readFWD", handleFWD);
   server.on("/readREF", handleREF);
-  server.on("/readDRV", handleDRV);
   server.on("/readSWR", handleSWR);
   server.on("/readTEMP", handleTEMP);
   server.on("/config", handleCONFIG);
-  server.on("/list", handleLIST);
-  server.on("/add", handleADD);
+  server.on("/modtt", handleMODTT);
+  server.on("/modcfg", handleMODCFG);
 
 
   server.onNotFound(handleNotFound);
