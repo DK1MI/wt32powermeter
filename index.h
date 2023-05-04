@@ -42,6 +42,8 @@ const char MAIN_page[] PROGMEM = R"=====(
   <h1><span id="TEMPValue">0</span>&#8451;</h1>
 </div>
 
+<form method='get' action='config'><button class='config' value='config' name='config' type='submit'>Configuration</button></form>
+
 <script>
 
 setInterval(function() {
