@@ -10,7 +10,7 @@ const char MAIN_page[] PROGMEM = R"=====(
      max-width: 500px;
      min-width: 250px;
      min-height: 200px;
-     background: #02b875;
+     background: #009879;
      padding: 30px;
      box-sizing: border-box;
      color: #FFF;
@@ -18,19 +18,39 @@ const char MAIN_page[] PROGMEM = R"=====(
      box-shadow: 0px 2px 18px -4px rgba(0,0,0,0.75);
      display: inline-block;
 }
+.redbox{
+  background: #FFAA79;
+}
+
+.whitebox{
+  background: #FFFFFF;
+  color: #009879;
+  border-style: solid;
+  border-color: #009879;
+}
+
+.button{background-color: #009879; border: none; color: white; padding: 5px 5px; text-align: center; text-decoration: none; display: inline-block; margin: 4px 2px; cursor: pointer; border-radius: 8px;}
 
 </style>
 <body>
 
 <div class="row">
-<div class="box">
+
+<div class="box whitebox">
+  <h1>Band</h1>
+  <h1><span id="BANDValue">0</span></h1>
+</div>
+
+<div id="fwd_box" class="box">
   <h1>FWD Power</h1>
-  <h1><span id="FWDValue">0</span> dBm</h1>
+  <h1><span id="FWDPower">0</span> dBm</h1>
+  <h1><span id="FWDVoltage">0</span> mV</h1>
 </div>
 
 <div class="box">
   <h1>REF Power</h1>
-  <h1><span id="REFValue">0</span> dBm</h1>
+  <h1><span id="REFPower">0</span> dBm</h1>
+  <h1><span id="REFVoltage">0</span> mV</h1>
 </div>
 
 <div class="box">
@@ -38,66 +58,41 @@ const char MAIN_page[] PROGMEM = R"=====(
   <h1><span id="SWRValue">0</span></h1>
 </div>
 
-<div class="box">
+<div class="box redbox">
   <h1>Temperature</h1> 
   <h1><span id="TEMPValue">0</span>&#8451;</h1>
 </div>
 </div>
 
-<form method='post' action='config'><button class='config' value='config' name='config' type='submit'>Configuration</button></form>
+<form method='post' action='config'><button class='button' value='config' name='config' type='submit'>Configuration</button></form>
 
 <script>
 
 setInterval(function() {
-  // Call a function repetatively with 1 Second interval
-  getFWD();
-  getREF();
-  getSWR();
-  getTEMP();
-}, 1000); //1000mSeconds update rate
+  // Call a function repetatively
+  getDATA();
+}, 500); //1000mSeconds update rate
 
-function getFWD() {
+function getDATA() {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
-      document.getElementById("FWDValue").innerHTML =
-      this.responseText;
+      const data = this.responseText.split(",");
+      document.getElementById("FWDPower").innerHTML = data[0];
+      document.getElementById("FWDVoltage").innerHTML = data[1];
+      document.getElementById("REFPower").innerHTML = data[2];
+      document.getElementById("REFVoltage").innerHTML = data[3];
+      document.getElementById("SWRValue").innerHTML = data[4];
+      document.getElementById("TEMPValue").innerHTML = data[5];
+      document.getElementById("BANDValue").innerHTML = data[6];
+      if (parseInt(data[0]) > 4) {
+        document.getElementById("fwd_box").className = "box redbox";
+      } else {
+        document.getElementById("fwd_box").className = "box";
+      }
     }
   };
-  xhttp.open("GET", "readFWD", true);
-  xhttp.send();
-}
-function getREF() {
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      document.getElementById("REFValue").innerHTML =
-      this.responseText;
-    }
-  };
-  xhttp.open("GET", "readREF", true);
-  xhttp.send();
-}
-function getSWR() {
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      document.getElementById("SWRValue").innerHTML =
-      this.responseText;
-    }
-  };
-  xhttp.open("GET", "readSWR", true);
-  xhttp.send();
-}
-function getTEMP() {
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      document.getElementById("TEMPValue").innerHTML =
-      this.responseText;
-    }
-  };
-  xhttp.open("GET", "readTEMP", true);
+  xhttp.open("GET", "readDATA", true);
   xhttp.send();
 }
 </script>
