@@ -42,8 +42,8 @@
 
 // Debug Level from 0 to 4
 #define _ETHERNET_WEBSERVER_LOGLEVEL_      3
-#define NO  0
-#define YES 1
+//#define NO  0
+//#define YES 1
 
 #include <WebServer_WT32_ETH01.h>
 #include "index.h"  // Main Web page header file
@@ -81,23 +81,20 @@ int IO4_REF = 4;
 WebServer server(80);
 
 // Select the IP address according to your local network
-IPAddress myIP(192, 168, 88, 247);
-IPAddress myGW(192, 168, 88, 1);
-IPAddress mySN(255, 255, 255, 0);
+//IPAddress myIP(192, 168, 88, 247);
+//IPAddress myGW(192, 168, 88, 1);
+//IPAddress mySN(255, 255, 255, 0);
 
 // Google DNS Server IP
-IPAddress myDNS(8, 8, 8, 8);
+//IPAddress myDNS(8, 8, 8, 8);
 
 int millivolt_to_dbm(int mv)
 {
   int last = 0;
   for (int i=0; i<3400; i++) {
     unsigned int stored_val = translation.getUInt(String(i).c_str(), 0);
-    //Serial.print(String(stored_val));
     if (stored_val > 0) {
-      //Serial.print(String(stored_val));
       if (i <  mv) {
-        //Serial.print("bigger");
         last = stored_val;
       } else {
         break;
@@ -156,34 +153,20 @@ void handleNotFound()
   server.send(404, F("text/plain"), message);
 }
 
-void handleFWD() {
+void handleDATA() {
   read_directional_couplers();
-  //String fwdValue = String(voltage_fwd);
-  //String fwdPower = String(millivolt_to_milliwatt(voltage_fwd));
-  //String output = String(voltage_fwd) + "/" + String(fwd_power);
-  String output = String(fwd_power);
-  server.send(200, "text/plane", output); //Send ADC value only to client ajax request
-}
 
-void handleREF() {
-  read_directional_couplers();
-  //String refValue = String(voltage_ref);
-  //String refPower = String(millivolt_to_milliwatt(voltage_ref));
-  //String output = String(voltage_ref) + "/" + String(ref_power);
-  String output = String(ref_power);
-  server.send(200, "text/plane", output); //Send ADC value only to client ajax request
-}
-
-void handleSWR(){
-  read_directional_couplers();
-  double swr = (1 + sqrt(ref_power/fwd_power)) / (1 - sqrt(ref_power/fwd_power));
-  server.send(200, "text/plane", String(swr)); //Send ADC value only to client ajax reques
-}
-
-void handleTEMP() {
+  // get temp
   int a = (temprature_sens_read() - 32) / 1.8;
   String tempValue = String(a);
-  server.send(200, "text/plane", tempValue); //Send ADC value only to client ajax request
+
+  // calculate SWR
+  double swr = (1 + sqrt(ref_power/fwd_power)) / (1 - sqrt(ref_power/fwd_power));
+
+  String band = "13cm";
+
+  String output = String(fwd_power) + "," + String(voltage_fwd) + "," + String(ref_power) + "," + String(voltage_ref) + "," + String(swr) + "," + tempValue + "," + band;
+  server.send(200, "text/plane", output); //Send ADC value only to client ajax request
 }
 
 void handleCONFIG() {
@@ -195,22 +178,26 @@ void handleCONFIG() {
   }
   
   conf_content = "<!DOCTYPE HTML>\r\n<html>";
+  conf_content += "<style>";
+  conf_content += ".styled-table{border-collapse: collapse; margin: 25px 0; font-size: 0.9em; font-family: sans-serif; min-width: 400px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);}.styled-table thead tr{background-color: #009879; color: #ffffff; text-align: left;}.styled-table tbody tr{border-bottom: 1px solid #dddddd;}.styled-table tbody tr:nth-of-type(even){background-color: #f3f3f3;}.styled-table tbody tr:last-of-type{border-bottom: 2px solid #009879;}.styled-table tbody tr.active-row{font-weight: bold; color: #009879;}";
+  conf_content += ".button{background-color: #009879; border: none; color: white; padding: 5px 5px; text-align: center; text-decoration: none; display: inline-block; margin: 4px 2px; cursor: pointer; border-radius: 8px;}";
+  conf_content += "</style>";
   conf_content += "<h1>Configuration</h1>";
   conf_content += "<p>";
-  conf_content += "<h3>Translation from mV to dBm</h3>";
+  conf_content += "<h3>Translation Detector voltage /mV to RF-Power level /dBm</h3>";
   conf_content +=  conf_translate_table;
   conf_content += "<p>";
   conf_content += "<h3>General Configuration Items</h3>";
   conf_content += "<p>";
   conf_content += conf_config_table;
-  conf_content += "</p><form method='POST' action='/'><button class='back' value='back' name='back' type='submit'>Back to Dashboard</button></form>";
+  conf_content += "</p><form method='POST' action='/'><button class='button' value='back' name='back' type='submit'>Back to Dashboard</button></form>";
   conf_content += "</html>";
   server.send(200, "text/html", conf_content);
 }
 
 void build_translate_table() {
   conf_translate_table = "<form action=\"/modtt\" method=\"POST\">";
-  conf_translate_table += "<table border=1>";
+  conf_translate_table += "<table class='styled-table'>";
   conf_translate_table += "<thead><tr><td>millivolt (mV)</td><td>decibel-milliwatts (dBm)</td><td>Action</td></tr></thead>";
 
   for (int i=0; i<3400; i++) {
@@ -221,18 +208,18 @@ void build_translate_table() {
       conf_translate_table += "</td><td>";
       conf_translate_table += String(stored_val);
       conf_translate_table += "</td><td>";
-      conf_translate_table += "<button class='delete' value='" + String(i) + "' name='delete' type='submit'>delete</button>";
+      conf_translate_table += "<button class='button' value='" + String(i) + "' name='delete' type='submit'>delete</button>";
       conf_translate_table += "</td></tr>";   
     } 
   }
-  conf_translate_table += "<tr><td><input name='volt' length=16></td><td><input name='dBm' length=16></td><td><input type='submit'></td></tr>";
+  conf_translate_table += "<tr><td><input name='volt' length=16></td><td><input name='dBm' length=16></td><td><button class='button' type='submit'>add/edit</button></td></tr>";
   conf_translate_table += "</table></form>"; 
   handleCONFIG();
 }
 
 void build_config_table() {
   conf_config_table = "<form action=\"/modcfg\" method=\"POST\">";
-  conf_config_table += "<table border=1>";
+  conf_config_table += "<table class='styled-table'>";
   conf_config_table += "<thead><tr><td>Key</td><td>Value</td></td><td>Action</td></tr></thead>";
   for (int i=0; i<sizeof config_items/sizeof config_items[0]; i++) {
     String stored_val = config.getString(config_items[i].c_str(), "xxx");
@@ -247,7 +234,7 @@ void build_config_table() {
     conf_config_table += "</td><td>";
     conf_config_table += "</td></tr>"; 
   }
-  conf_config_table += "<tr><td><input name='conf_key' length=16></td><td><input name='conf_value' length=16></td><td><input type='submit'></td></tr>";
+  conf_config_table += "<tr><td><input name='conf_key' length=16></td><td><input name='conf_value' length=16></td><td><button class='button' type='submit'>edit</button></td></tr>";
   conf_config_table += "</table></form>";
   handleCONFIG();
 }
@@ -301,15 +288,15 @@ void setup()
   
   ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER);
   // Static IP, leave without this line to get IP via DHCP
-  ETH.config(myIP, myGW, mySN, myDNS);
+
+
+
+  //ETH.config(myIP, myGW, mySN, myDNS);
 
   WT32_ETH01_waitForConnect();
 
   server.on(F("/"), handleRoot);
-  server.on("/readFWD", handleFWD);
-  server.on("/readREF", handleREF);
-  server.on("/readSWR", handleSWR);
-  server.on("/readTEMP", handleTEMP);
+  server.on("/readDATA", handleDATA);
   server.on("/config", handleCONFIG);
   server.on("/modtt", handleMODTT);
   server.on("/modcfg", handleMODCFG);
