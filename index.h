@@ -43,14 +43,12 @@ const char MAIN_page[] PROGMEM = R"=====(
 
 <div id="fwd_box" class="box">
   <h1>FWD Power</h1>
-  <h1><span id="FWDPower">0</span> dBm</h1>
-  <h1><span id="FWDVoltage">0</span> mV</h1>
+  <h1><span id="FWDPower">0</span> dBm / <span id="FWDVoltage">0</span> mV</h1>
 </div>
 
 <div class="box">
   <h1>REF Power</h1>
-  <h1><span id="REFPower">0</span> dBm</h1>
-  <h1><span id="REFVoltage">0</span> mV</h1>
+  <h1><span id="REFPower">0</span> dBm / <span id="REFVoltage">0</span> mV</h1>
 </div>
 
 <div class="box">
