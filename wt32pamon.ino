@@ -1,11 +1,11 @@
 /****************************************************************************************************************************
-  Remote PA Monitor - solution to remotely monitor RF power and SWR of amateur radio power amplifiers
+  Remote PA Monitor - solution to remotely monitor RF power, SWR and more of QO-100 power amplifiers
 
   For Ethernet shields using WT32_ETH01 (ESP32 + LAN8720)
   Uses WebServer_WT32_ETH01, a library for the Ethernet LAN8720 in WT32_ETH01 to run WebServer
 
-  Copyright 2023 by Michael Clemens, DK1MI
-  Licensed under MIT license (see LICENSE)
+  Michael Clemens, DK1MI
+  Licensed under MIT license
 
  *****************************************************************************************************************************/
 
@@ -72,11 +72,11 @@ float millivolt_to_dbm(int mv, bool fwd)
   float stored_val =0;
   for (int i=0; i<3400; i++) {
     if (fwd) {
-      stored_val = translation_fwd.getFloat(String(i).c_str(), 0);
+      stored_val = translation_fwd.getFloat(String(i).c_str());
     } else {
-      stored_val = translation_ref.getFloat(String(i).c_str(), 0);
+      stored_val = translation_ref.getFloat(String(i).c_str());
     }
-    if (stored_val > 0) {
+    if (!isnan(stored_val)) {
       if (i <  mv) {
         lastval = stored_val;
         lastkey = i;
@@ -247,11 +247,11 @@ void build_translate_table(bool fwd) {
   for (int i=0; i<3400; i++) {
     float stored_val = 0;
     if (fwd) {
-      stored_val = translation_fwd.getFloat(String(i).c_str(), 0);
+      stored_val = translation_fwd.getFloat(String(i).c_str());
     } else {
-      stored_val = translation_ref.getFloat(String(i).c_str(), 0);
+      stored_val = translation_ref.getFloat(String(i).c_str());
     }
-    if (stored_val > 0) {
+    if (!isnan(stored_val)) {
       tbl += "<tr><td>";
       tbl += String(i);
       tbl += "</td><td>";
