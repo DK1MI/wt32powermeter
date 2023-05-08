@@ -26,19 +26,7 @@ Preferences config;
 String config_items [ ] = {"show_fwd", "show_ref", "show_swr", "show_mV", "show_dBm", "show_watt"};
 String config_defaults [ ] = {"true", "true", "true", "true", "false", "true"};
 
-/*
-#ifdef __cplusplus
-extern "C" {
-#endif
-uint8_t temprature_sens_read();
-#ifdef __cplusplus
-}
-#endif
-uint8_t temprature_sens_read();
-*/
-
 int voltage_fwd,voltage_ref;
-int voltage_fwd_peak =0,voltage_ref_peak =0; 
 float fwd_dbm=0, ref_dbm=0;
 double fwd_watt=0, ref_watt=0;
 byte iii=0;
@@ -49,7 +37,7 @@ String conf_translate_ref_table = "";
 String conf_config_table = "";
 String del_action = "";
 
-String band = "13cm";
+String band = "70cm";
 String band_fwd = band + "_fwd";
 String band_ref = band + "_ref";
 String band_list []= {"3cm", "13cm", "70cm", "2m"};
@@ -67,10 +55,14 @@ WebServer server(80);
 // Google DNS Server IP
 //IPAddress myDNS(8, 8, 8, 8);
 
+
+// converts dBm to Watt
 double dbm_to_watt(float dbm) {
   return pow( 10.0, (dbm - 30.0) / 10.0);
 }
 
+// takes a voltage value and translates it
+// to dBm based on the corresponding lookup table
 float millivolt_to_dbm(int mv, bool fwd)
 {
   float lastval = 0;
@@ -95,31 +87,48 @@ float millivolt_to_dbm(int mv, bool fwd)
       }
     }
   }
+ 
   float lowerkey = min(lastkey, nextkey);
-  float higherkey = max(lastkey, nextkey);
   float lowerval = min(lastval, nextval);
+   /*
+  float higherkey = max(lastkey, nextkey);
+  
   float higherval = max(lastval, nextval);
   float diffkey = higherkey - lowerkey;
   float diffval = higherval - lowerval;
   float x = diffval / diffkey;
   float y = mv - lowerkey;
   float z = x * y;
+  
   float result = lowerval + z;
-  Serial.print("measured voltage: " + String(mv) + "   LastVal: " + String(lastval) + "    LastKey: " + String(lastkey) + "   Nextval: " + String(nextval) + "   NextKey:" + String(nextkey) + "\n");
+  */
+  float diffkey = max(lastkey, nextkey) - min(lastkey, nextkey);
+  float diffval = max(lastval, nextval) - min(lastval, nextval);
+  float result = lowerval + ((diffval / diffkey) * (mv - lowerkey));
+
+  //Serial.print("measured voltage: " + String(mv) + "   LastVal: " + String(lastval) + "    LastKey: " + String(lastkey) + "   Nextval: " + String(nextval) + "   NextKey:" + String(nextkey) + "\n");
   return result;
 }
 
+
+// read voltages from both input pins
+// calculates avaerage value of 20 measurements
 void read_directional_couplers()
-{   
+{ 
+  int voltage_sum_fwd = 0;
+  int voltage_sum_ref = 0;
   for(iii=0; iii<20; iii++)                                     // Take 20 samples and save the highest value
-  { voltage_fwd = analogReadMilliVolts(IO2_FWD);
-    voltage_ref = analogReadMilliVolts(IO4_REF);
+  { voltage_sum_fwd += analogReadMilliVolts(IO2_FWD);
+    voltage_sum_ref += analogReadMilliVolts(IO4_REF);
     //Serial.println(String(voltage_fwd));
-    if(voltage_fwd > voltage_fwd_peak) voltage_fwd_peak = voltage_fwd;    // safe the peak of 10 measurements
-    if(voltage_ref > voltage_ref_peak) voltage_ref_peak = voltage_ref;  
+    //if(voltage_fwd > voltage_fwd_peak) voltage_fwd_peak = voltage_fwd;    // safe the peak of 10 measurements
+    //if(voltage_ref > voltage_ref_peak) voltage_ref_peak = voltage_ref;  
   }
-  voltage_fwd = voltage_fwd_peak;                                         // use peak voltage for processing
-  voltage_ref = voltage_ref_peak;
+  //voltage_fwd = voltage_fwd_peak;                                         // use peak voltage for processing
+  //voltage_ref = voltage_ref_peak;
+
+  voltage_fwd = voltage_sum_fwd/20;                                         // use peak voltage for processing
+  voltage_ref = voltage_sum_ref/20;
 
   fwd_dbm = millivolt_to_dbm(voltage_fwd, true);
   ref_dbm = millivolt_to_dbm(voltage_ref, false);
@@ -129,17 +138,20 @@ void read_directional_couplers()
 
   Serial.print(String(fwd_watt) + "\n");
   
-  voltage_fwd_peak = 0;                                                      // set peak voltages back to 0
-  voltage_ref_peak = 0;
+  //voltage_fwd_peak = 0;                                                      // set peak voltages back to 0
+  //voltage_ref_peak = 0;
 
 }
 
+// delivers the dashboard page in "index.h"
 void handleRoot()
 {
-  String s = MAIN_page; //Read HTML contents
-  server.send(200, "text/html", s); //Send web page
+  String s = MAIN_page;
+  server.send(200, "text/html", s);
 }
 
+
+// delivers a 404 page if a non-existant resouurce is requested
 void handleNotFound()
 {
   String message = F("File Not Found\n\n");
@@ -160,22 +172,22 @@ void handleNotFound()
   server.send(404, F("text/plain"), message);
 }
 
+
+// executes the function to gather sensor data
+// delivers gathered data to dashboard page
+// invoked periodically by the dashboard page
 void handleDATA() {
   read_directional_couplers();
-
-  // get temp
-  //int a = (temprature_sens_read() - 32) / 1.8;
-  //String tempValue = String(a);
 
   // calculate SWR
   float swr = (1 + sqrt(ref_watt/fwd_watt)) / (1 - sqrt(ref_watt/fwd_watt));
 
- //String band = "13cm";
-
   String output = String(fwd_watt,3) + ";" + String(fwd_dbm,3) + ";" + String(voltage_fwd) + ";" + String(ref_watt,3) + ";" + String(ref_dbm,3) + ";" + String(voltage_ref) + ";" + String(swr) + ";" + band;
-  server.send(200, "text/plane", output); //Send ADC value only to client ajax request
+  server.send(200, "text/plane", output);
 }
 
+// main function for displaying the configuration page
+// invoked by the "configuration" button on the dashboard page
 void handleCONFIG() {
   if (conf_translate_fwd_table == "") {
     build_translate_table(true);
@@ -220,8 +232,9 @@ void handleCONFIG() {
   server.send(200, "text/html", conf_content);
 }
 
+// generates the translation table for either the FWD or
+// REF values
 void build_translate_table(bool fwd) {
- 
   String tbl = "";
   if (fwd) {
     tbl = "<form action=\"/modttfwd\" method=\"POST\">";
@@ -259,6 +272,7 @@ void build_translate_table(bool fwd) {
     }
 }
 
+// generates the table with generic configuration items
 void build_config_table() {
   conf_config_table = "<form action=\"/modcfg\" method=\"POST\">";
   conf_config_table += "<table class='styled-table'>";
@@ -281,7 +295,8 @@ void build_config_table() {
   handleCONFIG();
 }
 
-
+// Handle request from the config page to change or add values
+// to the FWD value table for the selected band
 void handleMODTTFWD() {
   String volt = server.arg("volt");
   String dBm = server.arg("dBm");
@@ -294,6 +309,9 @@ void handleMODTTFWD() {
   build_translate_table(true);
   handleCONFIG();
 }
+
+// Handle request from the config page to change or add values
+// to the REF value table for the selected band
 void handleMODTTREF() {
   String volt = server.arg("volt");
   String dBm = server.arg("dBm");
@@ -307,6 +325,8 @@ void handleMODTTREF() {
   handleCONFIG();
 }
 
+// Handle request from the config page to change or add values
+// to the genral config value table for the selected band
 void handleMODCFG() {
   String key = server.arg("conf_key");
   String value = server.arg("conf_value");
@@ -322,6 +342,10 @@ void handleMODCFG() {
   build_config_table();
 }
 
+// changes the band according to the user's selection
+// regenerates the translation tables and fills them
+// with the values assigned to the respective band
+// invoked by selecting a band from the select box of teh config page
 void handleBAND() {
   band = server.arg("bands");
   band_fwd = band + "_fwd";
@@ -335,6 +359,7 @@ void handleBAND() {
   handleCONFIG();
 }
 
+// initialization routine
 void setup()
 {
   analogReadResolution(12);
@@ -364,6 +389,7 @@ void setup()
 
   WT32_ETH01_waitForConnect();
 
+  // activates single web server endpoints
   server.on(F("/"), handleRoot);
   server.on("/readDATA", handleDATA);
   server.on("/config", handleCONFIG);
