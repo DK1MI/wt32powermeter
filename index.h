@@ -37,7 +37,7 @@ const char MAIN_page[] PROGMEM = R"=====(
 
 <div class="row">
 
-<div class="box whitebox">
+<div id="band_box" class="box whitebox">
   <h1>Band</h1>
   <h1><span id="BANDValue">0</span></h1>
 </div>
@@ -47,12 +47,12 @@ const char MAIN_page[] PROGMEM = R"=====(
   <h1><span id="FWDWatt">0</span> W </br><span id="FWDdBm">0</span> dBm </br><span id="FWDVoltage">0</span> mV</h1>
 </div>
 
-<div class="box">
+<div id="ref_box" class="box">
   <h1>REF Power</h1>
   <h1><span id="REFWatt">0</span> W </br><span id="REFdBm">0</span> dBm </br><span id="REFVoltage">0</span> mV</h1>
 </div>
 
-<div class="box">
+<div id="swr_box" class="box">
   <h1>SWR</h1>
   <h1>1:<span id="SWRValue">1.0</span></h1>
 </div>
@@ -78,12 +78,11 @@ function getDATA() {
       document.getElementById("REFdBm").innerHTML = data[4];
       document.getElementById("REFVoltage").innerHTML = data[5];
       document.getElementById("SWRValue").innerHTML = data[6];
-      //document.getElementById("TEMPValue").innerHTML = data[7];
       document.getElementById("BANDValue").innerHTML = data[7];
-      if (parseInt(data[0]) > 4) {
-        document.getElementById("fwd_box").className = "box redbox";
+      if (parseInt(data[6]) > 2) {
+        document.getElementById("swr_box").className = "box redbox";
       } else {
-        document.getElementById("fwd_box").className = "box";
+        document.getElementById("swr_box").className = "box";
       }
     }
   };
