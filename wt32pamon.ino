@@ -4,58 +4,29 @@
   For Ethernet shields using WT32_ETH01 (ESP32 + LAN8720)
   Uses WebServer_WT32_ETH01, a library for the Ethernet LAN8720 in WT32_ETH01 to run WebServer
 
-  Based on and modified from ESP8266 https://github.com/esp8266/Arduino/releases
-  Based on Built by Khoi Hoang https://github.com/khoih-prog/WebServer_WT32_ETH01
-  Adapted by Michael Clemens, DK1MI
+  Michael Clemens, DK1MI
   Licensed under MIT license
 
-  Copyright (c) 2015, Majenko Technologies
-  All rights reserved.
-
-  Redistribution and use in source and binary forms, with or without modification,
-  are permitted provided that the following conditions are met:
-
-  Redistributions of source code must retain the above copyright notice, this
-  list of conditions and the following disclaimer.
-
-  Redistributions in binary form must reproduce the above copyright notice, this
-  list of conditions and the following disclaimer in the documentation and/or
-  other materials provided with the distribution.
-
-  Neither the name of Majenko Technologies nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-  ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************************************************************/
 
 #define DEBUG_ETHERNET_WEBSERVER_PORT       Serial
 
 // Debug Level from 0 to 4
 #define _ETHERNET_WEBSERVER_LOGLEVEL_      3
-//#define NO  0
-//#define YES 1
 
 #include <WebServer_WT32_ETH01.h>
 #include "index.h"  // Main Web page header file
 #include "config.h"  // Config Web page header file
 #include <Preferences.h>
 
-Preferences translation;
+Preferences translation_fwd;
+Preferences translation_ref;
 Preferences config;
 
 String config_items [ ] = {"show_fwd", "show_ref", "show_swr", "show_mV", "show_dBm", "show_watt"};
 String config_defaults [ ] = {"true", "true", "true", "true", "false", "true"};
 
+/*
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -64,16 +35,24 @@ uint8_t temprature_sens_read();
 }
 #endif
 uint8_t temprature_sens_read();
+*/
 
 int voltage_fwd,voltage_ref;
 int voltage_fwd_peak =0,voltage_ref_peak =0; 
-int fwd_power=0, ref_power=0;
+float fwd_dbm=0, ref_dbm=0;
+double fwd_watt=0, ref_watt=0;
 byte iii=0;
 
 String conf_content;
-String conf_translate_table = "";
+String conf_translate_fwd_table = "";
+String conf_translate_ref_table = "";
 String conf_config_table = "";
 String del_action = "";
+
+String band = "13cm";
+String band_fwd = band + "_fwd";
+String band_ref = band + "_ref";
+String band_list []= {"3cm", "13cm", "70cm", "2m"};
 
 int IO2_FWD = 2;
 int IO4_REF = 4;
@@ -88,20 +67,46 @@ WebServer server(80);
 // Google DNS Server IP
 //IPAddress myDNS(8, 8, 8, 8);
 
-int millivolt_to_dbm(int mv)
+double dbm_to_watt(float dbm) {
+  return pow( 10.0, (dbm - 30.0) / 10.0);
+}
+
+float millivolt_to_dbm(int mv, bool fwd)
 {
-  int last = 0;
+  float lastval = 0;
+  float nextval = 0;
+  int lastkey = 0;
+  int nextkey = 0;
+  float stored_val =0;
   for (int i=0; i<3400; i++) {
-    unsigned int stored_val = translation.getUInt(String(i).c_str(), 0);
+    if (fwd) {
+      stored_val = translation_fwd.getFloat(String(i).c_str(), 0);
+    } else {
+      stored_val = translation_ref.getFloat(String(i).c_str(), 0);
+    }
     if (stored_val > 0) {
       if (i <  mv) {
-        last = stored_val;
+        lastval = stored_val;
+        lastkey = i;
       } else {
+        nextval = stored_val;
+        nextkey = i;
         break;
       }
     }
   }
-  return last;
+  float lowerkey = min(lastkey, nextkey);
+  float higherkey = max(lastkey, nextkey);
+  float lowerval = min(lastval, nextval);
+  float higherval = max(lastval, nextval);
+  float diffkey = higherkey - lowerkey;
+  float diffval = higherval - lowerval;
+  float x = diffval / diffkey;
+  float y = mv - lowerkey;
+  float z = x * y;
+  float result = lowerval + z;
+  Serial.print("measured voltage: " + String(mv) + "   LastVal: " + String(lastval) + "    LastKey: " + String(lastkey) + "   Nextval: " + String(nextval) + "   NextKey:" + String(nextkey) + "\n");
+  return result;
 }
 
 void read_directional_couplers()
@@ -116,11 +121,13 @@ void read_directional_couplers()
   voltage_fwd = voltage_fwd_peak;                                         // use peak voltage for processing
   voltage_ref = voltage_ref_peak;
 
-  // TODO: dbm in W umrechnen
+  fwd_dbm = millivolt_to_dbm(voltage_fwd, true);
+  ref_dbm = millivolt_to_dbm(voltage_ref, false);
 
+  fwd_watt = dbm_to_watt(fwd_dbm);
+  ref_watt = dbm_to_watt(ref_dbm);
 
-  fwd_power = millivolt_to_dbm(voltage_fwd);
-  ref_power = millivolt_to_dbm(voltage_ref);
+  Serial.print(String(fwd_watt) + "\n");
   
   voltage_fwd_peak = 0;                                                      // set peak voltages back to 0
   voltage_ref_peak = 0;
@@ -157,21 +164,24 @@ void handleDATA() {
   read_directional_couplers();
 
   // get temp
-  int a = (temprature_sens_read() - 32) / 1.8;
-  String tempValue = String(a);
+  //int a = (temprature_sens_read() - 32) / 1.8;
+  //String tempValue = String(a);
 
   // calculate SWR
-  double swr = (1 + sqrt(ref_power/fwd_power)) / (1 - sqrt(ref_power/fwd_power));
+  float swr = (1 + sqrt(ref_watt/fwd_watt)) / (1 - sqrt(ref_watt/fwd_watt));
 
-  String band = "13cm";
+ //String band = "13cm";
 
-  String output = String(fwd_power) + "," + String(voltage_fwd) + "," + String(ref_power) + "," + String(voltage_ref) + "," + String(swr) + "," + tempValue + "," + band;
+  String output = String(fwd_watt,3) + ";" + String(fwd_dbm,3) + ";" + String(voltage_fwd) + ";" + String(ref_watt,3) + ";" + String(ref_dbm,3) + ";" + String(voltage_ref) + ";" + String(swr) + ";" + band;
   server.send(200, "text/plane", output); //Send ADC value only to client ajax request
 }
 
 void handleCONFIG() {
-  if (conf_translate_table == "") {
-    build_translate_table();
+  if (conf_translate_fwd_table == "") {
+    build_translate_table(true);
+  }
+  if (conf_translate_ref_table == "") {
+    build_translate_table(false);
   }
   if (conf_config_table == "") {
     build_config_table();
@@ -183,38 +193,70 @@ void handleCONFIG() {
   conf_content += ".button{background-color: #009879; border: none; color: white; padding: 5px 5px; text-align: center; text-decoration: none; display: inline-block; margin: 4px 2px; cursor: pointer; border-radius: 8px;}";
   conf_content += "</style>";
   conf_content += "<h1>Configuration</h1>";
+  conf_content += "<h3>Band Selection</h1>";
+  conf_content += "<form method='POST' action='/selectband'>";
+  conf_content += "<label for='bands'></label><select class='button' onchange='this.form.submit()'' id='band' name='bands' size='1'>";
+  for (int i=0; i<sizeof band_list/sizeof band_list[0]; i++) {
+    String selected = "";
+    if (band_list[i] == band) {
+      selected = "selected";
+    }
+    conf_content += "<option value='" + band_list[i] + "' " + selected + " >" + band_list[i] + "</option>";
+  }
+  conf_content += "</select></form>";
   conf_content += "<p>";
-  conf_content += "<h3>Translation Detector voltage /mV to RF-Power level /dBm</h3>";
-  conf_content +=  conf_translate_table;
+  conf_content += "<h2>Translation Detector voltage /mV to RF-Power level /dBm</h3>";
+  conf_content += "<h3>FWD</h3>";
+  conf_content +=  conf_translate_fwd_table;
   conf_content += "<p>";
-  conf_content += "<h3>General Configuration Items</h3>";
+  conf_content += "<h3>REF</h3>";
+  conf_content +=  conf_translate_ref_table;
+  conf_content += "<p>";
+  conf_content += "<h2>General Configuration Items</h3>";
   conf_content += "<p>";
   conf_content += conf_config_table;
-  conf_content += "</p><form method='POST' action='/'><button class='button' value='back' name='back' type='submit'>Back to Dashboard</button></form>";
+  conf_content += "<p><form method='POST' action='/'><button class='button' value='back' name='back' type='submit'>Back to Dashboard</button></form>";
   conf_content += "</html>";
   server.send(200, "text/html", conf_content);
 }
 
-void build_translate_table() {
-  conf_translate_table = "<form action=\"/modtt\" method=\"POST\">";
-  conf_translate_table += "<table class='styled-table'>";
-  conf_translate_table += "<thead><tr><td>millivolt (mV)</td><td>decibel-milliwatts (dBm)</td><td>Action</td></tr></thead>";
+void build_translate_table(bool fwd) {
+ 
+  String tbl = "";
+  if (fwd) {
+    tbl = "<form action=\"/modttfwd\" method=\"POST\">";
+  } else {
+    tbl = "<form action=\"/modttref\" method=\"POST\">";
+  }
+  tbl += "<table class='styled-table'>";
+  tbl += "<thead><tr><td>millivolt (mV)</td><td>decibel-milliwatts (dBm)</td><td>Watt</td><td>Action</td></tr></thead>";
 
   for (int i=0; i<3400; i++) {
-    unsigned int stored_val = translation.getUInt(String(i).c_str(), 0);
+    float stored_val = 0;
+    if (fwd) {
+      stored_val = translation_fwd.getFloat(String(i).c_str(), 0);
+    } else {
+      stored_val = translation_ref.getFloat(String(i).c_str(), 0);
+    }
     if (stored_val > 0) {
-      conf_translate_table += "<tr><td>";
-      conf_translate_table += String(i);
-      conf_translate_table += "</td><td>";
-      conf_translate_table += String(stored_val);
-      conf_translate_table += "</td><td>";
-      conf_translate_table += "<button class='button' value='" + String(i) + "' name='delete' type='submit'>delete</button>";
-      conf_translate_table += "</td></tr>";   
+      tbl += "<tr><td>";
+      tbl += String(i);
+      tbl += "</td><td>";
+      tbl += String(stored_val,3);
+      tbl += "</td><td>";
+      tbl += String(dbm_to_watt(stored_val),3);
+      tbl += "</td><td>";
+      tbl += "<button class='button' value='" + String(i) + "' name='delete' type='submit'>delete</button>";
+      tbl += "</td></tr>";   
     } 
   }
-  conf_translate_table += "<tr><td><input name='volt' length=16></td><td><input name='dBm' length=16></td><td><button class='button' type='submit'>add/edit</button></td></tr>";
-  conf_translate_table += "</table></form>"; 
-  handleCONFIG();
+  tbl += "<tr><td><input name='volt' length=16></td><td><input name='dBm' length=16></td><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td><button class='button' type='submit'>add/edit</button></td></tr>";
+  tbl += "</table></form>"; 
+    if (fwd) {
+      conf_translate_fwd_table = tbl;
+    } else {
+      conf_translate_ref_table = tbl;
+    }
 }
 
 void build_config_table() {
@@ -240,16 +282,29 @@ void build_config_table() {
 }
 
 
-void handleMODTT() {
+void handleMODTTFWD() {
   String volt = server.arg("volt");
   String dBm = server.arg("dBm");
   del_action = server.arg("delete");
   if (del_action != "") {
-    translation.remove(del_action.c_str());
+    translation_fwd.remove(del_action.c_str());
   } else if (volt != "" and dBm != "") {
-     translation.putUInt(volt.c_str(), dBm.toInt());
+     translation_fwd.putFloat(volt.c_str(), dBm.toFloat());
   }
-  build_translate_table();
+  build_translate_table(true);
+  handleCONFIG();
+}
+void handleMODTTREF() {
+  String volt = server.arg("volt");
+  String dBm = server.arg("dBm");
+  del_action = server.arg("delete");
+  if (del_action != "") {
+    translation_ref.remove(del_action.c_str());
+  } else if (volt != "" and dBm != "") {
+     translation_ref.putFloat(volt.c_str(), dBm.toFloat());
+  }
+  build_translate_table(false);
+  handleCONFIG();
 }
 
 void handleMODCFG() {
@@ -267,10 +322,24 @@ void handleMODCFG() {
   build_config_table();
 }
 
+void handleBAND() {
+  band = server.arg("bands");
+  band_fwd = band + "_fwd";
+  band_ref = band + "_ref";
+  translation_fwd.end();
+  translation_ref.end();
+  translation_fwd.begin(band_fwd.c_str(), false);
+  translation_ref.begin(band_ref.c_str(), false);
+  build_translate_table(true);
+  build_translate_table(false);
+  handleCONFIG();
+}
+
 void setup()
 {
   analogReadResolution(12);
-  translation.begin("translation", false);
+  translation_fwd.begin(band_fwd.c_str(), false);
+  translation_ref.begin(band_ref.c_str(), false);
   config.begin("config", false);
   Serial.begin(115200);
 
@@ -298,8 +367,10 @@ void setup()
   server.on(F("/"), handleRoot);
   server.on("/readDATA", handleDATA);
   server.on("/config", handleCONFIG);
-  server.on("/modtt", handleMODTT);
+  server.on("/modttfwd", handleMODTTFWD);
+  server.on("/modttref", handleMODTTREF);
   server.on("/modcfg", handleMODCFG);
+  server.on("/selectband", handleBAND);
 
 
   server.onNotFound(handleNotFound);
