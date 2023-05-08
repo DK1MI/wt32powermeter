@@ -1,11 +1,11 @@
 /****************************************************************************************************************************
-  Remote PA Monitor - solution to remotely monitor RF power, SWR and more of QO-100 power amplifiers
+  Remote PA Monitor - solution to remotely monitor RF power and SWR of amateur radio power amplifiers
 
   For Ethernet shields using WT32_ETH01 (ESP32 + LAN8720)
   Uses WebServer_WT32_ETH01, a library for the Ethernet LAN8720 in WT32_ETH01 to run WebServer
 
-  Michael Clemens, DK1MI
-  Licensed under MIT license
+  Copyright 2023 by Michael Clemens, DK1MI
+  Licensed under MIT license (see LICENSE)
 
  *****************************************************************************************************************************/
 
