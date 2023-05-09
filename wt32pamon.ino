@@ -1,5 +1,5 @@
 /****************************************************************************************************************************
-  Remote PA Monitor - solution to remotely monitor RF power, SWR and more of QO-100 power amplifiers
+  Remote PA Monitor - solution to remotely monitor RF power, VSWR and more of QO-100 power amplifiers
 
   For Ethernet shields using WT32_ETH01 (ESP32 + LAN8720)
   Uses WebServer_WT32_ETH01, a library for the Ethernet LAN8720 in WT32_ETH01 to run WebServer
@@ -23,8 +23,8 @@ Preferences translation_fwd;
 Preferences translation_ref;
 Preferences config;
 
-String config_items [ ] = {"show_fwd", "show_ref", "show_swr", "show_mV", "show_dBm", "show_watt"};
-String config_defaults [ ] = {"true", "true", "true", "true", "false", "true"};
+String config_items [ ] = {"show_mV", "show_dBm", "show_watt", "vswr_threshold"};
+String config_defaults [ ] = {"true", "true", "true", "2"};
 
 int voltage_fwd,voltage_ref;
 float fwd_dbm=0, ref_dbm=0;
@@ -120,12 +120,7 @@ void read_directional_couplers()
   for(iii=0; iii<20; iii++)                                     // Take 20 samples and save the highest value
   { voltage_sum_fwd += analogReadMilliVolts(IO2_FWD);
     voltage_sum_ref += analogReadMilliVolts(IO4_REF);
-    //Serial.println(String(voltage_fwd));
-    //if(voltage_fwd > voltage_fwd_peak) voltage_fwd_peak = voltage_fwd;    // safe the peak of 10 measurements
-    //if(voltage_ref > voltage_ref_peak) voltage_ref_peak = voltage_ref;  
   }
-  //voltage_fwd = voltage_fwd_peak;                                         // use peak voltage for processing
-  //voltage_ref = voltage_ref_peak;
 
   voltage_fwd = voltage_sum_fwd/20;                                         // use peak voltage for processing
   voltage_ref = voltage_sum_ref/20;
@@ -135,11 +130,6 @@ void read_directional_couplers()
 
   fwd_watt = dbm_to_watt(fwd_dbm);
   ref_watt = dbm_to_watt(ref_dbm);
-
-  Serial.print(String(fwd_watt) + "\n");
-  
-  //voltage_fwd_peak = 0;                                                      // set peak voltages back to 0
-  //voltage_ref_peak = 0;
 
 }
 
@@ -172,17 +162,48 @@ void handleNotFound()
   server.send(404, F("text/plain"), message);
 }
 
+String watt_or_williwatt(float val){
+  String ret = "0";
+  if (val < 1){
+    ret = String(val*1000,0) + "mW";
+  } else {
+    ret = String(val,3) + "W";
+  }
+  return ret;
+}
 
 // executes the function to gather sensor data
 // delivers gathered data to dashboard page
 // invoked periodically by the dashboard page
 void handleDATA() {
   read_directional_couplers();
+  // calculate VSWR
+  float vswr = (1 + sqrt(ref_watt/fwd_watt)) / (1 - sqrt(ref_watt/fwd_watt));
+  String vswr_str = "-1";
+  if (vswr >= 1) {
+    vswr_str = String(vswr);
+  }
 
-  // calculate SWR
-  float swr = (1 + sqrt(ref_watt/fwd_watt)) / (1 - sqrt(ref_watt/fwd_watt));
+  float rl = fwd_dbm - ref_dbm;
 
-  String output = String(fwd_watt,3) + ";" + String(fwd_dbm,3) + ";" + String(voltage_fwd) + ";" + String(ref_watt,3) + ";" + String(ref_dbm,3) + ";" + String(voltage_ref) + ";" + String(swr) + ";" + band;
+  // get vswr_threshold from general config
+  String vswr_threshold = config.getString(String("vswr_threshold").c_str());
+
+  String voltage_fwd_str = "";
+  String voltage_ref_str = "";
+  if (config.getString(String("show_mV").c_str()) != "false") {
+    voltage_fwd_str = String(voltage_fwd) + "mV";
+    voltage_ref_str = String(voltage_ref) + "mV";
+  }
+
+  String fwd_dbm_str = "";
+  String ref_dbm_str = "";
+  if (config.getString(String("show_dBm").c_str()) != "false") {
+    fwd_dbm_str = String(fwd_dbm,3) + "dBm";
+    ref_dbm_str = String(ref_dbm,3) + "dBm";
+  }
+
+  String output = watt_or_williwatt(fwd_watt) + ";" + fwd_dbm_str + ";" + voltage_fwd_str + ";" + watt_or_williwatt(ref_watt) + ";" + ref_dbm_str + ";" + voltage_ref_str + ";" + vswr_str + ";" + String(rl) + ";" + band + ";" + String(vswr_threshold);
   server.send(200, "text/plane", output);
 }
 
@@ -257,7 +278,7 @@ void build_translate_table(bool fwd) {
       tbl += "</td><td>";
       tbl += String(stored_val,3);
       tbl += "</td><td>";
-      tbl += String(dbm_to_watt(stored_val),3);
+      tbl += String(dbm_to_watt(stored_val),5);
       tbl += "</td><td>";
       tbl += "<button class='button' value='" + String(i) + "' name='delete' type='submit'>delete</button>";
       tbl += "</td></tr>";   
@@ -366,6 +387,12 @@ void setup()
   translation_fwd.begin(band_fwd.c_str(), false);
   translation_ref.begin(band_ref.c_str(), false);
   config.begin("config", false);
+
+  // DELETEME: Cleanup from old ver
+  config.remove(String("show_fwd").c_str());
+  config.remove(String("show_ref").c_str());
+  config.remove(String("show_swr").c_str());
+
   Serial.begin(115200);
 
   while (!Serial);
