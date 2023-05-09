@@ -40,7 +40,7 @@ String del_action = "";
 String band = "70cm";
 String band_fwd = band + "_fwd";
 String band_ref = band + "_ref";
-String band_list []= {"3cm", "13cm", "70cm", "2m"};
+String band_list []= {"1.25cm", "3cm", "6cm", "9cm", "13cm", "23cm", "70cm", "2m", "HF"};
 
 int IO2_FWD = 2;
 int IO4_REF = 4;
