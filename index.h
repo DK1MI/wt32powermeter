@@ -44,17 +44,17 @@ const char MAIN_page[] PROGMEM = R"=====(
 
 <div id="fwd_box" class="box">
   <h1>FWD Power</h1>
-  <h1><span id="FWDWatt">0</span> W </br><span id="FWDdBm">0</span> dBm </br><span id="FWDVoltage">0</span> mV</h1>
+  <h1><span id="FWDWatt">0</span> </br><span id="FWDdBm">0</span> </br><span id="FWDVoltage">0</span></h1>
 </div>
 
 <div id="ref_box" class="box">
   <h1>REF Power</h1>
-  <h1><span id="REFWatt">0</span> W </br><span id="REFdBm">0</span> dBm </br><span id="REFVoltage">0</span> mV</h1>
+  <h1><span id="REFWatt">0</span> </br><span id="REFdBm">0</span> </br><span id="REFVoltage">0</span></h1>
 </div>
 
-<div id="swr_box" class="box">
-  <h1>SWR</h1>
-  <h1>1:<span id="SWRValue">1.0</span></h1>
+<div id="vswr_box" class="box">
+  <h1>VSWR</h1>
+  <h1><span id="VSWRValue">0</span></br><span id="RLValue">0</span> dB</h1>
 </div>
 
 <form method='post' action='config'><button class='button' value='config' name='config' type='submit'>Configuration</button></form>
@@ -77,13 +77,26 @@ function getDATA() {
       document.getElementById("REFWatt").innerHTML = data[3];
       document.getElementById("REFdBm").innerHTML = data[4];
       document.getElementById("REFVoltage").innerHTML = data[5];
-      document.getElementById("SWRValue").innerHTML = data[6];
-      document.getElementById("BANDValue").innerHTML = data[7];
-      if (parseInt(data[6]) > 2) {
-        document.getElementById("swr_box").className = "box redbox";
+      document.getElementById("VSWRValue").innerHTML = data[6];
+      document.getElementById("RLValue").innerHTML = data[7];
+      document.getElementById("BANDValue").innerHTML = data[8];
+      if (data[6] == "-1") {
+        document.getElementById("VSWRValue").innerHTML = "0";
+        document.getElementById("vswr_box").className = "box redbox";
       } else {
-        document.getElementById("swr_box").className = "box";
+        document.getElementById("VSWRValue").innerHTML = "1:" + data[6];
+        if (parseFloat(data[6]) >= parseFloat(data[9])) {
+          document.getElementById("vswr_box").className = "box redbox";
+        } else {
+          document.getElementById("vswr_box").className = "box";
+        }
       }
+      
+      //if (parseFloat(vswr) >= vswr_th || data[6] == "0") {
+      //  document.getElementById("vswr_box").className = "box redbox";
+      //} else {
+      //  document.getElementById("vswr_box").className = "box";
+      //}
     }
   };
   xhttp.open("GET", "readDATA", true);
