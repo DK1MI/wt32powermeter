@@ -64,11 +64,11 @@ String readFile(fs::FS &fs, const char * path){
 
    File file = fs.open(path);
    if(!file || file.isDirectory()){
-       Serial.println("− failed to open file for reading");
+       Serial.println("failed to open file for reading");
        return "";
    }
   String ret = "";
-   Serial.println("− read from file:");
+   Serial.println("read from file:");
    while(file.available()){
       ret+=char(file.read());
    }
@@ -81,13 +81,13 @@ void writeFile(fs::FS &fs, const char * path, const char * message){
 
    File file = fs.open(path, FILE_WRITE);
    if(!file){
-      Serial.println("− failed to open file for writing");
+      Serial.println("failed to open file for writing");
       return;
    }
    if(file.print(message)){
-      Serial.println("− file written");
+      Serial.println("file written");
    }else {
-      Serial.println("− frite failed");
+      Serial.println("file write failed");
    }
    file.close();
 }
