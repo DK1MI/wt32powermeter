@@ -19,7 +19,6 @@
 
 #include <WebServer_WT32_ETH01.h>
 #include "index.h"  // Main Web page header file
-#include "config.h"  // Config Web page header file
 #include <Preferences.h>
 #include "FS.h"
 #include "SPIFFS.h"
@@ -40,7 +39,7 @@ String conf_content;
 String conf_textareas = "";
 String conf_config_table = "";
 
-String band = "70cm";
+String band = "";
 String default_band = "70cm";
 String band_fwd = band + "_fwd";
 String band_ref = band + "_ref";
@@ -200,10 +199,12 @@ void handleNotFound()
 
 String watt_or_williwatt(double val){
   String ret = "0";
-  if (val < 1){
-    ret = String(val*1000,0) + "mW";
+  if (val < 0.001){
+    ret = String(val*1000000,0) + " uW";
+  } else if (val < 1) {
+    ret = String(val*1000,0) + " mW";
   } else {
-    ret = String(val,3) + "W";
+    ret = String(val,3) + " W";
   }
   ret.replace("nan", "---");
   return ret;
@@ -229,15 +230,15 @@ void handleDATA() {
   String voltage_fwd_str = "";
   String voltage_ref_str = "";
   if (config.getString(String("show_mV").c_str()) != "false") {
-    voltage_fwd_str = String(voltage_fwd) + "mV";
-    voltage_ref_str = String(voltage_ref) + "mV";
+    voltage_fwd_str = String(voltage_fwd) + " mV";
+    voltage_ref_str = String(voltage_ref) + " mV";
   }
 
   String fwd_dbm_str = "";
   String ref_dbm_str = "";
   if (config.getString(String("show_dBm").c_str()) != "false") {
-    fwd_dbm_str = String(fwd_dbm,3) + "dBm";
-    ref_dbm_str = String(ref_dbm,3) + "dBm";
+    fwd_dbm_str = String(fwd_dbm,3) + " dBm";
+    ref_dbm_str = String(ref_dbm,3) + " dBm";
   }
 
   fwd_dbm_str.replace("nan", "-- ");
@@ -246,7 +247,16 @@ void handleDATA() {
   rl_str.replace("nan", "-- ");
 
 
-  String output = watt_or_williwatt(fwd_watt) + ";" + fwd_dbm_str + ";" + voltage_fwd_str + ";" + watt_or_williwatt(ref_watt) + ";" + ref_dbm_str + ";" + voltage_ref_str + ";" + vswr_str + ";" + rl_str + ";" + band + ";" + String(vswr_threshold);
+  String fwd_watt_str = "";
+  String ref_watt_str = "";
+  if (config.getString(String("show_watt").c_str()) != "false") {
+    fwd_watt_str = watt_or_williwatt(fwd_watt);
+    ref_watt_str = watt_or_williwatt(ref_watt);
+  } 
+
+
+
+  String output = fwd_watt_str + ";" + fwd_dbm_str + ";" + voltage_fwd_str + ";" + ref_watt_str + ";" + ref_dbm_str + ";" + voltage_ref_str + ";" + vswr_str + ";" + rl_str + ";" + band + ";" + String(vswr_threshold);
   server.send(200, "text/plane", output);
 }
 
@@ -308,7 +318,7 @@ void build_textareas() {
 
   String tbl = "<form action=\"/modtranslation\" method=\"POST\">";
   tbl += "<table class='styled-table'>";
-  tbl += "<thead><tr><td>FWD (mV:dBm)</td><td>REF (mV:dBm)</td></tr></thead>";
+  tbl += "<thead><tr><td>"+band+" FWD (mV:dBm)</td><td>"+band+" REF (mV:dBm)</td></tr></thead>";
   tbl += "<tr><td>";
   tbl += "<textarea id='fwd_textarea' name='fwd_textarea' rows='30' cols='25'>";
   for (int i=0; i<sizeof fwd_array/sizeof fwd_array[0]; i++) {
@@ -458,9 +468,11 @@ void handleBAND() {
   band = server.arg("bands");
   band_fwd = band + "_fwd";
   band_ref = band + "_ref";
-  Serial.println("baaand:" + band);
   config.putString(String("selected_band").c_str(), band);
-  build_textareas();
+  conf_textareas = "";
+  conf_config_table = "";
+  //build_config_table();
+  //build_textareas();
   handleCONFIG();
 }
 
@@ -514,12 +526,10 @@ void setup()
   Serial.println(ETH.localIP());
 
   analogReadResolution(12);
-  //translation_fwd.begin(band_fwd.c_str(), false);
-  //translation_ref.begin(band_ref.c_str(), false);
-  config.begin("config", false);
 
+  config.begin("config", false);
   band = config.getString(String("selected_band").c_str());
-  if (band = ""){
+  if (band == ""){
     config.putString(String("selected_band").c_str(), default_band);
     band = default_band;
   }
