@@ -21,8 +21,10 @@ const char MAIN_page[] PROGMEM = R"=====(
 }
 .innerbox{
      padding: 10px;
-     vertical-align: top;
+     margin-left: auto;
+     margin-right: auto;
      display: inline-block;
+     text-align: center;
 }
 .redbox{
   background: #FFAA79;
@@ -48,7 +50,7 @@ function vumeter(elem, config){
     var boxCountRed     = config.boxCountRed || 2;
     var boxCountYellow  = config.boxCountYellow || 3;
     var boxGapFraction  = config.boxGapFraction || 0.2;
-    var jitter          = config.jitter || 0.02;
+    var jitter          = 0;//config.jitter || 0.02;
 
     // Colours
     var redOn     = 'rgba(255,47,30,0.9)';
@@ -77,13 +79,14 @@ function vumeter(elem, config){
     var draw = function(){
 
         var targetVal = parseInt(elem.dataset.val, 10);
-
+        
         // Gradual approach
         if (curVal <= targetVal){
             curVal += (targetVal - curVal) / 5;
         } else {
             curVal -= (curVal - targetVal) / 5;
         }
+        curVal = targetVal;
 
         // Apply jitter
         if (jitter > 0 && curVal > 0){
@@ -184,7 +187,7 @@ window.onload = function(){
 setInterval(function() {
   // Call a function repetatively
   getDATA();
-}, 500); //1000mSeconds update rate
+}, 500);
 
 function beep() {
     var snd = new Audio("data:audio/wav;base64,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qJrx4KOQjahZxWbcZgztj2c49nKmkId44S71j0c8eV9yDK6uPRzx5X18eDvjvQ6yKo9ZSS6l//8elePK/Lf//IInrOF/FvDoADYAGBMGb7FtErm5MXMlmPAJQVgWta7Zx2go+8xJ0UiCb8LHHdftWyLJE0QIAIsI+UbXu67dZMjmgDGCGl1H+vpF4NSDckSIkk7Vd+sxEhBQMRU8j/12UIRhzSaUdQ+rQU5kGeFxm+hb1oh6pWWmv3uvmReDl0UnvtapVaIzo1jZbf/pD6ElLqSX+rUmOQNpJFa/r+sa4e/pBlAABoAAAAA3CUgShLdGIxsY7AUABPRrgCABdDuQ5GC7DqPQCgbbJUAoRSUj+NIEig0YfyWUho1VBBBA//uQZB4ABZx5zfMakeAAAAmwAAAAF5F3P0w9GtAAACfAAAAAwLhMDmAYWMgVEG1U0FIGCBgXBXAtfMH10000EEEEEECUBYln03TTTdNBDZopopYvrTTdNa325mImNg3TTPV9q3pmY0xoO6bv3r00y+IDGid/9aaaZTGMuj9mpu9Mpio1dXrr5HERTZSmqU36A3CumzN/9Robv/Xx4v9ijkSRSNLQhAWumap82WRSBUqXStV/YcS+XVLnSS+WLDroqArFkMEsAS+eWmrUzrO0oEmE40RlMZ5+ODIkAyKAGUwZ3mVKmcamcJnMW26MRPgUw6j+LkhyHGVGYjSUUKNpuJUQoOIAyDvEyG8S5yfK6dhZc0Tx1KI/gviKL6qvvFs1+bWtaz58uUNnryq6kt5RzOCkPWlVqVX2a/EEBUdU1KrXLf40GoiiFXK///qpoiDXrOgqDR38JB0bw7SoL+ZB9o1RCkQjQ2CBYZKd/+VJxZRRZlqSkKiws0WFxUyCwsKiMy7hUVFhIaCrNQsKkTIsLivwKKigsj8XYlwt/WKi2N4d//uQRCSAAjURNIHpMZBGYiaQPSYyAAABLAAAAAAAACWAAAAApUF/Mg+0aohSIRobBAsMlO//Kk4soosy1JSFRYWaLC4qZBYWFRGZdwqKiwkNBVmoWFSJkWFxX4FFRQWR+LsS4W/rFRb/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////VEFHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU291bmRib3kuZGUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjAwNGh0dHA6Ly93d3cuc291bmRib3kuZGUAAAAAAAAAACU=");  
@@ -197,26 +200,57 @@ function strtoint(x) {
   return parsed;
 }
 
+function convert_power(val){
+  let ret = "0";
+  if (isNaN(val) || val > -9998) {
+    if (val < 0.001){
+      ret = val*1000000 + " uW";
+    } else if (val < 1) {
+      ret = val*1000 + " mW";
+    } else {
+      ret = val + " W";
+    }
+  } else {
+    ret = "-- W";
+  }
+  //ret.replace("nan", "---");
+  return ret;
+}
+
+function check_dbm(val){
+  let ret = "0";
+  if (isNaN(val) || val == -9999) {
+    ret = "-- dBm";
+  } else {
+    ret = val + " dBm";
+  }
+  return ret;
+}
+
+
 function getDATA() {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
       data = this.responseText.split(";");
-      document.getElementById("FWDWatt").innerHTML = data[0];
-      document.getElementById("FWDdBm").innerHTML = data[1];
+      document.getElementById("FWDWatt").innerHTML = convert_power(data[0]);
+      document.getElementById("FWDdBm").innerHTML = check_dbm(data[1]);
       document.getElementById("FWDVoltage").innerHTML = data[2];
-      document.getElementById("REFWatt").innerHTML = data[3];
-      document.getElementById("REFdBm").innerHTML = data[4];
+      document.getElementById("REFWatt").innerHTML = convert_power(data[3]);
+      document.getElementById("REFdBm").innerHTML = check_dbm(data[4]);
       document.getElementById("REFVoltage").innerHTML = data[5];
       document.getElementById("VSWRValue").innerHTML = data[6];
       document.getElementById("RLValue").innerHTML = data[7];
       document.getElementById("BANDValue").innerHTML = data[8];
       document.getElementById("AntennaName").innerHTML = data[10];
+      document.getElementById("max_led_pwr_fwd").innerHTML = data[12];
+      document.getElementById("max_led_pwr_ref").innerHTML = data[13];
+      document.getElementById("max_led_vswr").innerHTML = data[14];
       if (data[6] == "-1" || data[6] == "inf") {
         document.getElementById("VSWRValue").innerHTML = "--";
         document.getElementById("vswr_box").className = "box redbox";
       } else {
-        document.getElementById("VSWRValue").innerHTML = "1:" + data[6];
+        document.getElementById("VSWRValue").innerHTML = data[6];
         if (parseFloat(data[6]) >= parseFloat(data[9]) || data[6] == "inf") {
           document.getElementById("vswr_box").className = "box redbox";
           if (data[11] == "true") {
@@ -237,9 +271,7 @@ function getDATA() {
         document.getElementById("ref_box").className = "box";
       }
       fwd_vu_meter.setAttribute('data-val', strtoint(data[0]));
-      //fwd_vu_meter.setAttribute('max', strtoint(data[12]));
       ref_vu_meter.setAttribute('data-val', strtoint(data[3]));
-      //ref_vu_meter.setAttribute('max', strtoint(data[13]));
       swr_vu_meter.setAttribute('data-val', strtoint(data[6]-1));
         vumeter(fwd_vu_meter, {
           "boxCount": 15,
@@ -270,11 +302,11 @@ function getDATA() {
 
 <div id="fwd_box" class="box">
   <div class="innerbox">
-
     <h1>FWD Power</h1>
     <h2><span id="FWDWatt">0</span> </br><span id="FWDdBm">0</span> </br><span id="FWDVoltage">0</span></h2>
   </div>
   <div class="innerbox">
+    <span id="max_led_pwr_fwd">0</span> W
     <section class="main">
       <canvas id="fwd_vu_meter" width="60" height="200" data-val="0">No canvas</canvas>
     </section>
@@ -287,6 +319,7 @@ function getDATA() {
     <h2><span id="REFWatt">0</span> </br><span id="REFdBm">0</span> </br><span id="REFVoltage">0</span></h2>
   </div>
   <div class="innerbox">
+    <span id="max_led_pwr_ref">0</span> W
     <section class="main">
       <canvas id="ref_vu_meter" width="60" height="200" data-val="0">No canvas</canvas>
     </section>
@@ -301,6 +334,7 @@ function getDATA() {
     <h2><span id="RLValue">0</span> dB</h2>
   </div>
   <div class="innerbox">
+    <span id="max_led_vswr">0</span>
     <section class="main">
       <canvas id="swr_vu_meter" width="60" height="200" data-val="0">No canvas</canvas>
     </section>
