@@ -310,7 +310,10 @@ void handleDATA() {
   }
 
 
-  String rl_str = (String(rl));
+  String rl_str = "-- ";
+  if (rl > 0) {
+    rl_str = (String(rl));
+  }
   rl_str.replace("nan", "-- ");
 
   String antenna_name = config.getString(String("antenna_name").c_str());
