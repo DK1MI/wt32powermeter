@@ -8,8 +8,8 @@ const char MAIN_page[] PROGMEM = R"=====(
 }
 .box{
      max-width: 500px;
-     min-width: 250px;
-     min-height: 300px;
+     min-width: 330px;
+     min-height: 330px;
      background: #009879;
      padding: 30px;
      box-sizing: border-box;
@@ -17,6 +17,11 @@ const char MAIN_page[] PROGMEM = R"=====(
      color: #FFF;
      margin:20px;
      box-shadow: 0px 2px 18px -4px rgba(0,0,0,0.75);
+     display: inline-block;
+}
+.innerbox{
+     padding: 10px;
+     vertical-align: top;
      display: inline-block;
 }
 .redbox{
@@ -33,36 +38,148 @@ const char MAIN_page[] PROGMEM = R"=====(
 .button{background-color: #009879; border: none; color: white; padding: 5px 5px; text-align: center; text-decoration: none; display: inline-block; margin: 4px 2px; cursor: pointer; border-radius: 8px;}
 
 </style>
-<body>
-
-<div class="row">
-
-<div id="band_box" class="box whitebox">
-  <h1><span id="AntennaName"></span></h1>
-  <h1>Band</h1>
-  <h2><span id="BANDValue">0</span></h2>
-</div>
-
-<div id="fwd_box" class="box">
-  <h1>FWD Power</h1>
-  <h2><span id="FWDWatt">0</span> </br><span id="FWDdBm">0</span> </br><span id="FWDVoltage">0</span></h2>
-</div>
-
-<div id="ref_box" class="box">
-  <h1>REF Power</h1>
-  <h2><span id="REFWatt">0</span> </br><span id="REFdBm">0</span> </br><span id="REFVoltage">0</span></h2>
-</div>
-
-<div id="vswr_box" class="box">
-  <h1>VSWR</h1>
-  <h2><span id="VSWRValue">0</span></h2>
-  <h1>RL</h1>
-  <h2><span id="RLValue">0</span> dB</h2>
-</div>
-
-<form method='post' action='config'><button class='button' value='config' name='config' type='submit'>Configuration</button></form>
 
 <script>
+function vumeter(elem, config){
+
+    // Settings
+    var max             = config.max || 100;
+    var boxCount        = config.boxCount || 10;
+    var boxCountRed     = config.boxCountRed || 2;
+    var boxCountYellow  = config.boxCountYellow || 3;
+    var boxGapFraction  = config.boxGapFraction || 0.2;
+    var jitter          = config.jitter || 0.02;
+
+    // Colours
+    var redOn     = 'rgba(255,47,30,0.9)';
+    var redOff    = 'rgba(64,12,8,0.9)';
+    var yellowOn  = 'rgba(255,215,5,0.9)';
+    var yellowOff = 'rgba(64,53,0,0.9)';
+    var greenOn   = 'rgba(53,255,30,0.9)';
+    var greenOff  = 'rgba(13,64,8,0.9)';
+
+    // Derived and starting values
+    var width = elem.width;
+    var height = elem.height;
+    var curVal = 0;
+
+    // Gap between boxes and box height
+    var boxHeight = height / (boxCount + (boxCount+1)*boxGapFraction);
+    var boxGapY = boxHeight * boxGapFraction;
+
+    var boxWidth = width - (boxGapY*2);
+    var boxGapX = (width - boxWidth) / 2;
+
+    // Canvas starting state
+    var c = elem.getContext('2d');
+
+    // Main draw loop
+    var draw = function(){
+
+        var targetVal = parseInt(elem.dataset.val, 10);
+
+        // Gradual approach
+        if (curVal <= targetVal){
+            curVal += (targetVal - curVal) / 5;
+        } else {
+            curVal -= (curVal - targetVal) / 5;
+        }
+
+        // Apply jitter
+        if (jitter > 0 && curVal > 0){
+            var amount = (Math.random()*jitter*max);
+            if (Math.random() > 0.5){
+                amount = -amount;
+            }
+            curVal += amount;
+        }
+        if (curVal < 0) {
+            curVal = 0;
+        }
+
+        c.save();
+        c.beginPath();
+        c.rect(0, 0, width, height);
+        c.fillStyle = 'rgb(32,32,32)';
+        c.fill();
+        c.restore();
+        drawBoxes(c, curVal);
+
+        requestAnimationFrame(draw);
+    };
+
+    // Draw the boxes
+    function drawBoxes(c, val){
+        c.save(); 
+        c.translate(boxGapX, boxGapY);
+        for (var i = 0; i < boxCount; i++){
+            var id = getId(i);
+
+            c.beginPath();
+            if (isOn(id, val)){
+                c.shadowBlur = 10;
+                c.shadowColor = getBoxColor(id, val);
+            }
+            c.rect(0, 0, boxWidth, boxHeight);
+            c.fillStyle = getBoxColor(id, val);
+            c.fill();
+            c.translate(0, boxHeight + boxGapY);
+        }
+        c.restore();
+    }
+
+    // Get the color of a box given it's ID and the current value
+    function getBoxColor(id, val){
+        // on colours
+        if (id > boxCount - boxCountRed){
+            return isOn(id, val)? redOn : redOff;
+        }
+        if (id > boxCount - boxCountRed - boxCountYellow){
+            return isOn(id, val)? yellowOn : yellowOff;
+        }
+        return isOn(id, val)? greenOn : greenOff;
+    }
+
+    function getId(index){
+        // The ids are flipped, so zero is at the top and
+        // boxCount-1 is at the bottom. The values work
+        // the other way around, so align them first to
+        // make things easier to think about.
+        return Math.abs(index - (boxCount - 1)) + 1;
+    }
+
+    function isOn(id, val){
+        // We need to scale the input value (0-max)
+        // so that it fits into the number of boxes
+        var maxOn = Math.ceil((val/max) * boxCount);
+        return (id <= maxOn);
+    }
+
+    // Trigger the animation
+    draw();
+}
+
+window.onload = function(){
+  var fwd_vu_meter = document.getElementById('fwd_vu_meter');
+  var ref_vu_meter = document.getElementById('ref_vu_meter');
+  var swr_vu_meter = document.getElementById('swr_vu_meter');
+  vumeter(fwd_vu_meter, {
+    "boxCount": 15,
+    "boxGapFraction": 0.25,
+    "max": 200,
+  });
+  vumeter(ref_vu_meter, {
+    "boxCount": 15,
+    "boxGapFraction": 0.25,
+    "max": 200,
+  });
+  vumeter(swr_vu_meter, {
+    "boxCount": 15,
+    "boxGapFraction": 0.25,
+    "max": 2,
+  }); 
+};
+
 
 setInterval(function() {
   // Call a function repetatively
@@ -74,11 +191,17 @@ function beep() {
     snd.play();
 }
 
+function strtoint(x) {
+  const parsed = parseInt(x);
+  if (isNaN(parsed)) { return 0; }
+  return parsed;
+}
+
 function getDATA() {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
-      const data = this.responseText.split(";");
+      data = this.responseText.split(";");
       document.getElementById("FWDWatt").innerHTML = data[0];
       document.getElementById("FWDdBm").innerHTML = data[1];
       document.getElementById("FWDVoltage").innerHTML = data[2];
@@ -89,8 +212,8 @@ function getDATA() {
       document.getElementById("RLValue").innerHTML = data[7];
       document.getElementById("BANDValue").innerHTML = data[8];
       document.getElementById("AntennaName").innerHTML = data[10];
-      if (data[6] == "-1") {
-        document.getElementById("VSWRValue").innerHTML = "0";
+      if (data[6] == "-1" || data[6] == "inf") {
+        document.getElementById("VSWRValue").innerHTML = "--";
         document.getElementById("vswr_box").className = "box redbox";
       } else {
         document.getElementById("VSWRValue").innerHTML = "1:" + data[6];
@@ -113,18 +236,80 @@ function getDATA() {
       } else {
         document.getElementById("ref_box").className = "box";
       }
-      
-      //if (parseFloat(vswr) >= vswr_th || data[6] == "0") {
-      //  document.getElementById("vswr_box").className = "box redbox";
-      //} else {
-      //  document.getElementById("vswr_box").className = "box";
-      //}
+      fwd_vu_meter.setAttribute('data-val', strtoint(data[0]));
+      //fwd_vu_meter.setAttribute('max', strtoint(data[12]));
+      ref_vu_meter.setAttribute('data-val', strtoint(data[3]));
+      //ref_vu_meter.setAttribute('max', strtoint(data[13]));
+      swr_vu_meter.setAttribute('data-val', strtoint(data[6]-1));
+        vumeter(fwd_vu_meter, {
+          "boxCount": 15,
+          "boxGapFraction": 0.25,
+          "max": strtoint(data[12]),
+        });
+        vumeter(ref_vu_meter, {
+          "boxCount": 15,
+          "boxGapFraction": 0.25,
+          "max": strtoint(data[13]),
+        });
     }
   };
   xhttp.open("GET", "readDATA", true);
   xhttp.send();
 }
+
 </script>
+<body>
+
+<div class="row">
+
+<div id="band_box" class="box whitebox">
+  <h1><span id="AntennaName"></span></h1>
+  <h1>Band</h1>
+  <h2><span id="BANDValue">0</span></h2>
+</div>
+
+<div id="fwd_box" class="box">
+  <div class="innerbox">
+
+    <h1>FWD Power</h1>
+    <h2><span id="FWDWatt">0</span> </br><span id="FWDdBm">0</span> </br><span id="FWDVoltage">0</span></h2>
+  </div>
+  <div class="innerbox">
+    <section class="main">
+      <canvas id="fwd_vu_meter" width="60" height="200" data-val="0">No canvas</canvas>
+    </section>
+  </div>
+</div>
+
+<div id="ref_box" class="box">
+  <div class="innerbox">
+    <h1>REF Power</h1>
+    <h2><span id="REFWatt">0</span> </br><span id="REFdBm">0</span> </br><span id="REFVoltage">0</span></h2>
+  </div>
+  <div class="innerbox">
+    <section class="main">
+      <canvas id="ref_vu_meter" width="60" height="200" data-val="0">No canvas</canvas>
+    </section>
+  </div>
+</div>
+
+<div id="vswr_box" class="box">
+  <div class="innerbox">
+    <h1>VSWR</h1>
+    <h2><span id="VSWRValue">0</span></h2>
+    <h1>RL</h1>
+    <h2><span id="RLValue">0</span> dB</h2>
+  </div>
+  <div class="innerbox">
+    <section class="main">
+      <canvas id="swr_vu_meter" width="60" height="200" data-val="0">No canvas</canvas>
+    </section>
+  </div>
+</div>
+
+
+<form method='post' action='config'><button class='button' value='config' name='config' type='submit'>Configuration</button></form>
+
 </body>
 </html>
 )=====";
