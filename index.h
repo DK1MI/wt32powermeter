@@ -25,6 +25,7 @@ const char MAIN_page[] PROGMEM = R"=====(
      margin-right: auto;
      display: inline-block;
      text-align: center;
+     vertical-align: middle;
 }
 .redbox{
   background: #FFAA79;
@@ -310,6 +311,7 @@ function getDATA() {
     <section class="main">
       <canvas id="fwd_vu_meter" width="60" height="200" data-val="0">No canvas</canvas>
     </section>
+    0 W
   </div>
 </div>
 
@@ -323,6 +325,7 @@ function getDATA() {
     <section class="main">
       <canvas id="ref_vu_meter" width="60" height="200" data-val="0">No canvas</canvas>
     </section>
+    0 W
   </div>
 </div>
 
@@ -338,6 +341,7 @@ function getDATA() {
     <section class="main">
       <canvas id="swr_vu_meter" width="60" height="200" data-val="0">No canvas</canvas>
     </section>
+    1
   </div>
 </div>
 
