@@ -7,6 +7,8 @@
   Michael Clemens, DK1MI
   Licensed under MIT license
 
+  VU meter code was taken from https://github.com/tomnomnom/vumeter, credits go to Tom Hudson (https://github.com/tomnomnom)
+  
  *****************************************************************************************************************************/
 
 #define DEBUG_ETHERNET_WEBSERVER_PORT       Serial
@@ -29,6 +31,9 @@ String config_items [ ] = {"show_mV", "show_dBm", "show_watt", "vswr_threshold",
 String config_defaults [ ] = {"true", "true", "true", "2", "true", "70cm", " "};
 double fwd_array [3300] = {};
 double ref_array [3300] = {};
+
+double fwd_highest_power = 0;
+double ref_highest_power = 0;
 
 int voltage_fwd,voltage_ref;
 double fwd_dbm=0, ref_dbm=0;
@@ -114,10 +119,11 @@ double millivolt_to_dbm(int mv, bool fwd)
     if (fwd) {
       //stored_val = translation_fwd.getFloat(String(i).c_str());
       stored_val = fwd_array[i];
+      /*
       if (stored_val != 0){
         Serial.println("key: " + String(i) + " - " + String(stored_val));
       }
-      
+      */
     } else {
       //stored_val = translation_ref.getFloat(String(i).c_str());
       stored_val = ref_array[i];
@@ -137,9 +143,13 @@ double millivolt_to_dbm(int mv, bool fwd)
       }
     }
   }
-
-  Serial.println("lastkey: "+String(lastkey));
-  Serial.println("lastval: "+String(lastval));
+  if (fwd) {
+    fwd_highest_power = fwd_array[highest_val_in_table];
+  } else {
+    ref_highest_power = ref_array[highest_val_in_table];
+  }
+  //Serial.println("lastkey: "+String(lastkey));
+  //Serial.println("lastval: "+String(lastval));
  
   double lowerkey = min(lastkey, nextkey);
   double lowerval = min(lastval, nextval);
@@ -276,6 +286,7 @@ void handleDATA() {
       fwd_watt_str = watt_or_williwatt(fwd_watt);
     }
   }
+
   if (ref_dbm_str.startsWith("nan") || ref_dbm_str.startsWith("-9999")){
     ref_dbm_str = "-- ";
     ref_watt_str = "-- ";
@@ -284,32 +295,18 @@ void handleDATA() {
       ref_watt_str = watt_or_williwatt(ref_watt);
     }
   }
-  //ref_dbm_str.replace("nan", "-- ");
-  //ref_dbm_str.replace("-9999", "-- ");
+
   String rl_str = (String(rl));
   rl_str.replace("nan", "-- ");
 
-/*
-  String fwd_watt_str = "";
-  String ref_watt_str = "";
-  if (config.getString(String("show_watt").c_str()) != "false") {
-    fwd_watt_str = watt_or_williwatt(fwd_watt);
-    ref_watt_str = watt_or_williwatt(ref_watt);
-  }
-  if (fwd_watt_str.startsWith("nan") || fwd_watt_str.startsWith("-9999")){
-    fwd_watt_str = "-- ";
-  }
-  if (ref_watt_str.startsWith("nan") || ref_watt_str.startsWith("-9999")){
-    ref_watt_str = "-- ";
-  }
-  //fwd_watt_str.replace("-9999", "-- ");
-  //ref_watt_str.replace("-9999", "-- ");
-*/
   String antenna_name = config.getString(String("antenna_name").c_str());
   String vswr_beep = config.getString(String("vswr_beep").c_str());
 
-  String output = fwd_watt_str + ";" + fwd_dbm_str + ";" + voltage_fwd_str + ";" + ref_watt_str + ";" + ref_dbm_str + ";" + voltage_ref_str + ";" + vswr_str + ";" + rl_str + ";" + band + ";" + String(vswr_threshold) + ";" + antenna_name + ";" + vswr_beep;
+  String output = fwd_watt_str + ";" + fwd_dbm_str + ";" + voltage_fwd_str + ";" + ref_watt_str + ";";
+  output += ref_dbm_str + ";" + voltage_ref_str + ";" + vswr_str + ";" + rl_str + ";" + band + ";";
+  output += String(vswr_threshold) + ";" + antenna_name + ";" + vswr_beep + ";"+ String(fwd_highest_power,0) + ";" + String(ref_highest_power,0);
   server.send(200, "text/plane", output);
+  //Serial.println("String(fwd_highest_power,0): " + String(fwd_highest_power,0));
 }
 
 // main function for displaying the configuration page
@@ -361,7 +358,7 @@ void build_textareas() {
   String fwd = readFile(SPIFFS, String("/" + band + "fwd.txt").c_str());
   String ref = readFile(SPIFFS, String("/" + band + "ref.txt").c_str());
 
-  Serial.println("From disk: "+ fwd);
+  //Serial.println("From disk: "+ fwd);
 
   clear_fwd_ref_array();
 
@@ -469,7 +466,7 @@ void save_string_to_array(String table_data, double arr []){
       if (i-r > 1)
       {
         //tmp[t] = table_data.substring(r,i);
-        Serial.println("row: " + table_data.substring(r,i));
+        //Serial.println("row: " + table_data.substring(r,i));
         String row = table_data.substring(r,i);
         t++;
 
@@ -586,9 +583,9 @@ void setup()
     band = default_band;
   }
 
-  Serial.println("band: " + band);
+  //Serial.println("band: " + band);
   build_textareas();
-  Serial.println("done");
+  //Serial.println("done");
 
 
 }
