@@ -27,13 +27,13 @@
 
 Preferences config;
 
-String config_items [ ] = {"show_mV", "show_dBm", "show_watt", "vswr_threshold", "vswr_beep", "selected_band", "antenna_name"};
-String config_defaults [ ] = {"true", "true", "true", "2", "true", "70cm", " "};
+String config_items [ ] = {"show_mV", "show_dBm", "show_watt", "vswr_threshold", "vswr_beep", "selected_band", "antenna_name", "max_led_pwr_fwd", "max_led_pwr_ref", "max_led_vswr"};
+String config_defaults [ ] = {"true", "true", "true", "2", "true", "70cm", " ", "100", "100", "3"};
 double fwd_array [3300] = {};
 double ref_array [3300] = {};
 
-double fwd_highest_power = 0;
-double ref_highest_power = 0;
+//double fwd_highest_power = 0;
+//double ref_highest_power = 0;
 
 int voltage_fwd,voltage_ref;
 double fwd_dbm=0, ref_dbm=0;
@@ -143,11 +143,12 @@ double millivolt_to_dbm(int mv, bool fwd)
       }
     }
   }
+  /*
   if (fwd) {
     fwd_highest_power = fwd_array[highest_val_in_table];
   } else {
     ref_highest_power = ref_array[highest_val_in_table];
-  }
+  }*/
   //Serial.println("lastkey: "+String(lastkey));
   //Serial.println("lastval: "+String(lastval));
  
@@ -227,7 +228,7 @@ void handleNotFound()
 
   server.send(404, F("text/plain"), message);
 }
-
+/**
 String watt_or_williwatt(double val){
   String ret = "0";
   if (val < 0.001){
@@ -240,6 +241,7 @@ String watt_or_williwatt(double val){
   ret.replace("nan", "---");
   return ret;
 }
+**/
 
 // executes the function to gather sensor data
 // delivers gathered data to dashboard page
@@ -271,12 +273,12 @@ void handleDATA() {
   String fwd_dbm_str = "";
   String ref_dbm_str = "";
   if (config.getString(String("show_dBm").c_str()) != "false") {
-    fwd_dbm_str = String(fwd_dbm,3) + " dBm";
-    ref_dbm_str = String(ref_dbm,3) + " dBm";
+    fwd_dbm_str = String(fwd_dbm,3);
+    ref_dbm_str = String(ref_dbm,3);
   }
-
   //fwd_dbm_str.replace("nan", "-- ");
   //fwd_dbm_str.replace("-9999", "-- ");
+  /**
   if (fwd_dbm_str.startsWith("nan") || fwd_dbm_str.startsWith("-9999")){
     fwd_dbm_str = "-- ";
     fwd_watt_str = "-- ";
@@ -295,6 +297,18 @@ void handleDATA() {
       ref_watt_str = watt_or_williwatt(ref_watt);
     }
   }
+  **/
+
+
+  //String fwd_watt_str = "";
+  if (config.getString(String("show_watt").c_str()) != "false") {
+    fwd_watt_str = String(fwd_watt);
+  }
+
+  if (config.getString(String("show_watt").c_str()) != "false") {
+    ref_watt_str = String(ref_watt);
+  }
+
 
   String rl_str = (String(rl));
   rl_str.replace("nan", "-- ");
@@ -304,7 +318,8 @@ void handleDATA() {
 
   String output = fwd_watt_str + ";" + fwd_dbm_str + ";" + voltage_fwd_str + ";" + ref_watt_str + ";";
   output += ref_dbm_str + ";" + voltage_ref_str + ";" + vswr_str + ";" + rl_str + ";" + band + ";";
-  output += String(vswr_threshold) + ";" + antenna_name + ";" + vswr_beep + ";"+ String(fwd_highest_power,0) + ";" + String(ref_highest_power,0);
+  output += String(vswr_threshold) + ";" + antenna_name + ";" + vswr_beep + ";";
+  output += config.getString(String("max_led_pwr_fwd").c_str()) + ";" + config.getString(String("max_led_pwr_ref").c_str()) + ";" + config.getString(String("max_led_vswr").c_str());
   server.send(200, "text/plane", output);
   //Serial.println("String(fwd_highest_power,0): " + String(fwd_highest_power,0));
 }
