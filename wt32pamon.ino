@@ -159,10 +159,13 @@ double millivolt_to_dbm(int mv, bool fwd)
   double diffval = max(lastval, nextval) - min(lastval, nextval);
   double result = lowerval + ((diffval / diffkey) * (mv - lowerkey));
 
-  if (mv < lowest_val_in_table || mv > highest_val_in_table){
+  /*
+  if (mv < lowest_val_in_table ){
+    result = 
+  } else if (mv > highest_val_in_table){
     result = -9999;
   }
-
+  */
   //Serial.print("measured voltage: " + String(mv) + "   LastVal: " + String(lastval) + "    LastKey: " + String(lastkey) + "   Nextval: " + String(nextval) + "   NextKey:" + String(nextkey) + "\n");
   return result;
 }
@@ -174,7 +177,7 @@ void read_directional_couplers()
 { 
   int voltage_sum_fwd = 0;
   int voltage_sum_ref = 0;
-  for(iii=0; iii<50; iii++)                                     // Take 20 samples and save the highest value
+  for(iii=0; iii<50; iii++)                                     // Take 50 samples and save the highest value
   { voltage_sum_fwd += analogReadMilliVolts(IO2_FWD);
     voltage_sum_ref += analogReadMilliVolts(IO4_REF);
   }
@@ -185,6 +188,10 @@ void read_directional_couplers()
   fwd_dbm = millivolt_to_dbm(voltage_fwd, true);
   ref_dbm = millivolt_to_dbm(voltage_ref, false);
 
+  fwd_watt = dbm_to_watt(fwd_dbm);
+  ref_watt = dbm_to_watt(ref_dbm);
+
+  /*
   if (fwd_dbm != -9999){
     fwd_watt = dbm_to_watt(fwd_dbm);
   } else {
@@ -196,7 +203,7 @@ void read_directional_couplers()
   } else {
     ref_watt = -9999;
   }
-  
+  */
 
 }
 
@@ -249,7 +256,21 @@ String watt_or_williwatt(double val){
 void handleDATA() {
   read_directional_couplers();
   // calculate VSWR
-  double vswr = (1 + sqrt(ref_watt/fwd_watt)) / (1 - sqrt(ref_watt/fwd_watt));
+  //double vswr = (1 + sqrt(ref_watt/fwd_watt)) / (1 - sqrt(ref_watt/fwd_watt));
+
+  double vswr = 0;
+  //char vswr_string[8];
+  //float reflexion_coefficient = 0;
+  if (fwd_watt>ref_watt){
+    vswr = (1 + sqrt(ref_watt/fwd_watt)) / (1 - sqrt(ref_watt/fwd_watt));
+  }
+  //reflexion_coefficient = sqrt(float(ref_watt) / float(fwd_watt));                       // calculate SWR 
+  //float vswr = (1+reflexion_coefficient)/(1-reflexion_coefficient);
+  //dtostrf(vswr,2,1, vswr_string);
+
+
+  
+
   String vswr_str = "-1";
   String fwd_watt_str = "";
   String ref_watt_str = "";
@@ -273,8 +294,8 @@ void handleDATA() {
   String fwd_dbm_str = "";
   String ref_dbm_str = "";
   if (config.getString(String("show_dBm").c_str()) != "false") {
-    fwd_dbm_str = String(fwd_dbm,3);
-    ref_dbm_str = String(ref_dbm,3);
+    fwd_dbm_str = String(fwd_dbm,2);
+    ref_dbm_str = String(ref_dbm,2);
   }
   //fwd_dbm_str.replace("nan", "-- ");
   //fwd_dbm_str.replace("-9999", "-- ");
@@ -302,11 +323,11 @@ void handleDATA() {
 
   //String fwd_watt_str = "";
   if (config.getString(String("show_watt").c_str()) != "false") {
-    fwd_watt_str = String(fwd_watt);
+    fwd_watt_str = String(fwd_watt,10);
   }
 
   if (config.getString(String("show_watt").c_str()) != "false") {
-    ref_watt_str = String(ref_watt);
+    ref_watt_str = String(ref_watt,10);
   }
 
 
@@ -323,6 +344,7 @@ void handleDATA() {
   output += ref_dbm_str + ";" + voltage_ref_str + ";" + vswr_str + ";" + rl_str + ";" + band + ";";
   output += String(vswr_threshold) + ";" + antenna_name + ";" + vswr_beep + ";";
   output += config.getString(String("max_led_pwr_fwd").c_str()) + ";" + config.getString(String("max_led_pwr_ref").c_str()) + ";" + config.getString(String("max_led_vswr").c_str());
+  Serial.println("vswr: " + String(vswr) + "  FWD Watt: " + fwd_watt_str + "  REF Watt: " + ref_watt_str);
   server.send(200, "text/plane", output);
   //Serial.println("String(fwd_highest_power,0): " + String(fwd_highest_power,0));
 }
