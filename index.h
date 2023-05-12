@@ -168,17 +168,17 @@ window.onload = function(){
   var ref_vu_meter = document.getElementById('ref_vu_meter');
   var swr_vu_meter = document.getElementById('swr_vu_meter');
   vumeter(fwd_vu_meter, {
-    "boxCount": 15,
+    "boxCount": 10,
     "boxGapFraction": 0.25,
     "max": 200,
   });
   vumeter(ref_vu_meter, {
-    "boxCount": 15,
+    "boxCount": 10,
     "boxGapFraction": 0.25,
     "max": 200,
   });
   vumeter(swr_vu_meter, {
-    "boxCount": 15,
+    "boxCount": 10,
     "boxGapFraction": 0.25,
     "max": 2,
   }); 
@@ -201,26 +201,32 @@ function strtoint(x) {
   return parsed;
 }
 
+function formatNum(num, separator, fraction) {
+  var str = num.toLocaleString('en-US');
+  str = str.replace(/\./, fraction);
+  str = str.replace(/,/g, separator);
+  str = str.substring(0, str.indexOf(fraction)+3);
+  return str;
+}
+
+// formatNum(parseFloat(val*1000000).toPrecision(2))
+
 function convert_power(val){
   let ret = "0";
-  if (isNaN(val) || val > -9998) {
+  //if (isNaN(val)) {
     if (val < 0.001){
-      ret = val*1000000 + " uW";
+      ret = formatNum(val*1000000,'','.') + " uW";
     } else if (val < 1) {
-      ret = val*1000 + " mW";
+      ret = formatNum(val*1000,'','.') + " mW";
     } else {
-      ret = val + " W";
+      ret = formatNum(val*1.0,'','.') + " W";
     }
-  } else {
-    ret = "-- W";
-  }
-  //ret.replace("nan", "---");
   return ret;
 }
 
 function check_dbm(val){
   let ret = "0";
-  if (isNaN(val) || val == -9999) {
+  if (isNaN(val)) {
     ret = "-- dBm";
   } else {
     ret = val + " dBm";
@@ -271,18 +277,18 @@ function getDATA() {
       } else {
         document.getElementById("ref_box").className = "box";
       }
-      fwd_vu_meter.setAttribute('data-val', strtoint(data[0]));
-      ref_vu_meter.setAttribute('data-val', strtoint(data[3]));
+      fwd_vu_meter.setAttribute('data-val', strtoint(data[0]*1000000));
+      ref_vu_meter.setAttribute('data-val', strtoint(data[3]*1000000));
       swr_vu_meter.setAttribute('data-val', strtoint(data[6]-1));
         vumeter(fwd_vu_meter, {
-          "boxCount": 15,
+          "boxCount": 10,
           "boxGapFraction": 0.25,
-          "max": strtoint(data[12]),
+          "max": strtoint(data[12]*1000000),
         });
         vumeter(ref_vu_meter, {
-          "boxCount": 15,
+          "boxCount": 10,
           "boxGapFraction": 0.25,
-          "max": strtoint(data[13]),
+          "max": strtoint(data[13]*1000000),
         });
     }
   };
@@ -333,8 +339,7 @@ function getDATA() {
   <div class="innerbox">
     <h1>VSWR</h1>
     <h2><span id="VSWRValue">0</span></h2>
-    <h1>RL</h1>
-    <h2><span id="RLValue">0</span> dB</h2>
+    <h2>RL: <span id="RLValue">0</span> dB</h2>
   </div>
   <div class="innerbox">
     <span id="max_led_vswr">0</span>
