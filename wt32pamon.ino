@@ -27,8 +27,8 @@
 
 Preferences config;
 
-String config_items [ ] = {"show_mV", "show_dBm", "show_watt", "vswr_threshold", "vswr_beep", "selected_band", "antenna_name", "max_led_pwr_fwd", "max_led_pwr_ref", "max_led_vswr"};
-String config_defaults [ ] = {"true", "true", "true", "2", "true", "70cm", " ", "100", "100", "3"};
+String config_items [ ] = {"show_mV", "show_dBm", "show_watt", "vswr_threshold", "vswr_beep", "selected_band", "antenna_name", "max_led_pwr_fwd", "max_led_pwr_ref", "max_led_vswr", "show_led_fwd", "show_led_ref", "show_led_vswr"};
+String config_defaults [ ] = {"true", "true", "true", "2", "true", "70cm", " ", "100", "100", "3", "true", "true", "true"};
 double fwd_array [3300] = {};
 double ref_array [3300] = {};
 
@@ -102,6 +102,48 @@ double dbm_to_watt(double dbm) {
   return pow( 10.0, (dbm - 30.0) / 10.0);
 }
 
+// checks if a given voltage is lower as the smallest value
+// in the table or higher than the biggest value
+bool is_val_out_of_bounds(int mv, bool fwd){
+  double stored_val = 0;
+  int key_a = 0;
+  int key_b = 0;
+
+  for (int i=0; i<3300; i++) {
+    if (fwd) {
+      stored_val = fwd_array[i];
+    } else {
+      stored_val = ref_array[i];
+    }
+    if (stored_val != 0) {
+      key_a = i;
+      break;
+    } 
+  }
+
+  for (int i=3299; i>0; i--) {
+    if (fwd) {
+      stored_val = fwd_array[i];
+    } else {
+      stored_val = ref_array[i];
+    }
+    if (stored_val != 0) {
+      key_b = i;
+      break;
+    } 
+  }
+
+  int lowerkey = min(key_a, key_b);
+  int higherkey = max(key_a, key_b);
+  //Serial.println("lowerkey: " + String(lowerkey) + "higherkey: " + String(higherkey));
+  if (lowerkey <= mv and mv <= higherkey)
+    return false;
+  else {
+    return true;
+  }
+
+}
+
 // takes a voltage value and translates it
 // to dBm based on the corresponding lookup table
 double millivolt_to_dbm(int mv, bool fwd)
@@ -111,61 +153,99 @@ double millivolt_to_dbm(int mv, bool fwd)
   int lastkey = 0;
   int nextkey = 0;
   double stored_val = 0;
+  bool ascending = true;
 
-  int lowest_val_in_table = 0;
-  int highest_val_in_table = 0;
+  int lowest_key_in_table = 0;
+  int highest_key_in_table = 0;
 
+  // check if table is ascending or descending
+  double asc_tmp_val = 0;
   for (int i=0; i<3300; i++) {
     if (fwd) {
-      //stored_val = translation_fwd.getFloat(String(i).c_str());
       stored_val = fwd_array[i];
-      /*
-      if (stored_val != 0){
-        Serial.println("key: " + String(i) + " - " + String(stored_val));
-      }
-      */
     } else {
-      //stored_val = translation_ref.getFloat(String(i).c_str());
       stored_val = ref_array[i];
     }
     if (stored_val != 0) {
-      if (lowest_val_in_table == 0){
-        lowest_val_in_table = i; //finds the lowest voltage value stored in the table
-      }
-      highest_val_in_table = i; // we will have the highest voltage value in the table at the end of the loop
-      if (i <  mv) {
-        lastval = stored_val;
-        lastkey = i;
-      } else {
-        nextval = stored_val;
-        nextkey = i;
+      if (asc_tmp_val == 0) {
+        asc_tmp_val = stored_val;
+      } else if (stored_val > asc_tmp_val) {
+        ascending = true;
+        break;
+      } else if (stored_val < asc_tmp_val) {
+        ascending = false;
         break;
       }
-    }
+    } 
   }
-  /*
-  if (fwd) {
-    fwd_highest_power = fwd_array[highest_val_in_table];
+
+
+
+  if (ascending) {
+    for (int i=0; i<3300; i++) {
+      if (fwd) {
+        stored_val = fwd_array[i];
+      } else {
+        stored_val = ref_array[i];
+      }
+      if (stored_val != 0) {
+        if (lowest_key_in_table == 0){
+          lowest_key_in_table = i; //finds the lowest voltage value stored in the table
+        }
+        highest_key_in_table = i; // we will have the highest voltage value in the table at the end of the loop
+        if (i <  mv) {
+          lastval = stored_val;
+          lastkey = i;
+        } else {
+          nextval = stored_val;
+          nextkey = i;
+          break;
+        }
+      }
+    }
   } else {
-    ref_highest_power = ref_array[highest_val_in_table];
-  }*/
-  //Serial.println("lastkey: "+String(lastkey));
-  //Serial.println("lastval: "+String(lastval));
+    for (int i=3300; i>0; i--) {
+      if (fwd) {
+        stored_val = fwd_array[i];
+      } else {
+        stored_val = ref_array[i];
+      }
+      if (stored_val != 0) {
+        if (lowest_key_in_table == 0){
+          lowest_key_in_table = i; //finds the lowest voltage value stored in the table
+        }
+        highest_key_in_table = i; // we will have the highest voltage value in the table at the end of the loop
+        if (i >  mv) {
+          lastval = stored_val;
+          lastkey = i;
+        } else {
+          nextval = stored_val;
+          nextkey = i;
+          break;
+        }
+      }
+    }
+
+  }
+
+  
+
  
   double lowerkey = min(lastkey, nextkey);
+  double higherkey = max(lastkey, nextkey);
   double lowerval = min(lastval, nextval);
+  double higherval = max(lastval, nextval);
+
 
   double diffkey = max(lastkey, nextkey) - min(lastkey, nextkey);
   double diffval = max(lastval, nextval) - min(lastval, nextval);
-  double result = lowerval + ((diffval / diffkey) * (mv - lowerkey));
-
-  /*
-  if (mv < lowest_val_in_table ){
-    result = 
-  } else if (mv > highest_val_in_table){
-    result = -9999;
+  double result = 0;
+  if (ascending) {
+    result = lowerval + ((diffval / diffkey) * (mv - lowerkey));
+  } else {
+    result = higherval - ((diffval / diffkey) * (mv - lowerkey));
   }
-  */
+ 
   //Serial.print("measured voltage: " + String(mv) + "   LastVal: " + String(lastval) + "    LastKey: " + String(lastkey) + "   Nextval: " + String(nextval) + "   NextKey:" + String(nextkey) + "\n");
   return result;
 }
@@ -190,20 +270,6 @@ void read_directional_couplers()
 
   fwd_watt = dbm_to_watt(fwd_dbm);
   ref_watt = dbm_to_watt(ref_dbm);
-
-  /*
-  if (fwd_dbm != -9999){
-    fwd_watt = dbm_to_watt(fwd_dbm);
-  } else {
-    fwd_watt = -9999;
-  }
-  
-  if (fwd_dbm != -9999){
-    ref_watt = dbm_to_watt(ref_dbm);
-  } else {
-    ref_watt = -9999;
-  }
-  */
 
 }
 
@@ -235,41 +301,21 @@ void handleNotFound()
 
   server.send(404, F("text/plain"), message);
 }
-/**
-String watt_or_williwatt(double val){
-  String ret = "0";
-  if (val < 0.001){
-    ret = String(val*1000000,0) + " uW";
-  } else if (val < 1) {
-    ret = String(val*1000,0) + " mW";
-  } else {
-    ret = String(val,3) + " W";
-  }
-  ret.replace("nan", "---");
-  return ret;
-}
-**/
+
 
 // executes the function to gather sensor data
 // delivers gathered data to dashboard page
 // invoked periodically by the dashboard page
 void handleDATA() {
   read_directional_couplers();
-  // calculate VSWR
-  //double vswr = (1 + sqrt(ref_watt/fwd_watt)) / (1 - sqrt(ref_watt/fwd_watt));
+
 
   double vswr = 0;
-  //char vswr_string[8];
-  //float reflexion_coefficient = 0;
+
   if (fwd_watt>ref_watt){
     vswr = (1 + sqrt(ref_watt/fwd_watt)) / (1 - sqrt(ref_watt/fwd_watt));
   }
-  //reflexion_coefficient = sqrt(float(ref_watt) / float(fwd_watt));                       // calculate SWR 
-  //float vswr = (1+reflexion_coefficient)/(1-reflexion_coefficient);
-  //dtostrf(vswr,2,1, vswr_string);
-
-
-  
+ 
 
   String vswr_str = "-1";
   String fwd_watt_str = "";
@@ -297,29 +343,6 @@ void handleDATA() {
     fwd_dbm_str = String(fwd_dbm,2);
     ref_dbm_str = String(ref_dbm,2);
   }
-  //fwd_dbm_str.replace("nan", "-- ");
-  //fwd_dbm_str.replace("-9999", "-- ");
-  /**
-  if (fwd_dbm_str.startsWith("nan") || fwd_dbm_str.startsWith("-9999")){
-    fwd_dbm_str = "-- ";
-    fwd_watt_str = "-- ";
-  } else {
-    //String fwd_watt_str = "";
-    if (config.getString(String("show_watt").c_str()) != "false") {
-      fwd_watt_str = watt_or_williwatt(fwd_watt);
-    }
-  }
-
-  if (ref_dbm_str.startsWith("nan") || ref_dbm_str.startsWith("-9999")){
-    ref_dbm_str = "-- ";
-    ref_watt_str = "-- ";
-  } else {
-    if (config.getString(String("show_watt").c_str()) != "false") {
-      ref_watt_str = watt_or_williwatt(ref_watt);
-    }
-  }
-  **/
-
 
   //String fwd_watt_str = "";
   if (config.getString(String("show_watt").c_str()) != "false") {
@@ -340,13 +363,16 @@ void handleDATA() {
   String antenna_name = config.getString(String("antenna_name").c_str());
   String vswr_beep = config.getString(String("vswr_beep").c_str());
 
+  bool fwd_oob = is_val_out_of_bounds(voltage_fwd, true);
+  bool ref_oob = is_val_out_of_bounds(voltage_ref, false);
+
   String output = fwd_watt_str + ";" + fwd_dbm_str + ";" + voltage_fwd_str + ";" + ref_watt_str + ";";
   output += ref_dbm_str + ";" + voltage_ref_str + ";" + vswr_str + ";" + rl_str + ";" + band + ";";
   output += String(vswr_threshold) + ";" + antenna_name + ";" + vswr_beep + ";";
-  output += config.getString(String("max_led_pwr_fwd").c_str()) + ";" + config.getString(String("max_led_pwr_ref").c_str()) + ";" + config.getString(String("max_led_vswr").c_str());
-  Serial.println("vswr: " + String(vswr) + "  FWD Watt: " + fwd_watt_str + "  REF Watt: " + ref_watt_str);
+  output += config.getString(String("max_led_pwr_fwd").c_str()) + ";" + config.getString(String("max_led_pwr_ref").c_str()) + ";";
+  output += config.getString(String("max_led_vswr").c_str()) + ";" + String(fwd_oob) + ";" + String(ref_oob) + ";";
+  output += config.getString(String("show_led_fwd").c_str()) + ";" + config.getString(String("show_led_ref").c_str()) + ";" + config.getString(String("show_led_vswr").c_str());
   server.send(200, "text/plane", output);
-  //Serial.println("String(fwd_highest_power,0): " + String(fwd_highest_power,0));
 }
 
 // main function for displaying the configuration page
