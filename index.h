@@ -56,8 +56,6 @@ function vumeter(elem, config){
     var boxGapFraction  = config.boxGapFraction || 0.2;
     var jitter          = 0;//config.jitter || 0.02;
 
-
-
     // Colours
     var redOn     = 'rgba(255,47,30,0.9)';
     var redOff    = 'rgba(64,12,8,0.9)';
@@ -86,8 +84,6 @@ function vumeter(elem, config){
 
         var targetVal = parseInt(elem.dataset.val, 10);
 
-
-
         // Gradual approach
         if (curVal <= targetVal){
             curVal += (targetVal - curVal) / 5;
@@ -107,7 +103,6 @@ function vumeter(elem, config){
         if (curVal < 0) {
             curVal = 0;
         }
-   
 
         c.save();
         c.beginPath();
@@ -118,8 +113,7 @@ function vumeter(elem, config){
         drawBoxes(c, curVal);
 
         requestAnimationFrame(draw);
-        
-        
+
     };
 
     // Draw the boxes
@@ -169,42 +163,8 @@ function vumeter(elem, config){
         return (id <= maxOn);
     }
 
-    // Trigger the animation
-    //if (okaytogo) {
-    
-    
-
     draw();
-
-
-    
-    
-    //}
-    
 }
-
-window.onload = function(){
-
-  var fwd_vu_meter = document.getElementById('fwd_vu_meter');
-  var ref_vu_meter = document.getElementById('ref_vu_meter');
-  var swr_vu_meter = document.getElementById('swr_vu_meter');
-  vumeter(fwd_vu_meter, {
-    "boxCount": 10,
-    "boxGapFraction": 0.25,
-    "max": 200,
-  });
-  vumeter(ref_vu_meter, {
-    "boxCount": 10,
-    "boxGapFraction": 0.25,
-    "max": 200,
-  });
-  vumeter(swr_vu_meter, {
-    "boxCount": 10,
-    "boxGapFraction": 0.25,
-    "max": 2,
-  }); 
-};
-
 
 setInterval(function() {
   // Call a function repetatively
@@ -231,11 +191,8 @@ function formatNum(num, separator, fraction) {
   return str;
 }
 
-// formatNum(parseFloat(val*1000000).toPrecision(2))
-
 function convert_power(val){
   let ret = "0";
-  //if (isNaN(val)) {
     if (val < 0.001){
       ret = formatNum(val*1000000,'','.') + " uW";
     } else if (val < 1) {
@@ -261,8 +218,8 @@ function getDATA() {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
-      document.getElementById("ref_led_box").style.display = 'none';
-      document.getElementById("vswr_led_box").style.display = 'none';
+      //document.getElementById("ref_led_box").style.display = 'none';
+      //document.getElementById("vswr_led_box").style.display = 'none';
       data = this.responseText.split(";");
       if (data[15] == "0") {
         document.getElementById("FWDWatt").innerHTML = convert_power(data[0]);
@@ -277,8 +234,12 @@ function getDATA() {
       } else {
         document.getElementById("FWDWatt").innerHTML = "---";
         document.getElementById("FWDdBm").innerHTML = "---";
-        document.getElementById("FWDVoltage").innerHTML = "---";
-        fwd_vu_meter.setAttribute('data-val', 0);
+        document.getElementById("FWDVoltage").innerHTML = data[2];
+        if (data[17] == "true") {
+          fwd_vu_meter.setAttribute('data-val', 0);
+        } else {
+          document.getElementById("fwd_led_box").style.display = 'none';
+        }
       }
       if (data[16] == "0") {
         document.getElementById("REFWatt").innerHTML = convert_power(data[3]);
@@ -293,8 +254,12 @@ function getDATA() {
       } else {
         document.getElementById("REFWatt").innerHTML = "---";
         document.getElementById("REFdBm").innerHTML = "---";
-        document.getElementById("REFVoltage").innerHTML = "---";
-        ref_vu_meter.setAttribute('data-val', 0);
+        document.getElementById("REFVoltage").innerHTML = data[5];
+        if (data[18] == "true") {
+          ref_vu_meter.setAttribute('data-val', 0);
+        } else {
+          document.getElementById("ref_led_box").style.display = 'none';
+        }
       }
       document.getElementById("VSWRValue").innerHTML = data[6];
       document.getElementById("RLValue").innerHTML = data[7];
@@ -338,13 +303,16 @@ function getDATA() {
         "boxGapFraction": 0.25,
         "max": strtoint(data[12]*1000000),
       });
-      
       vumeter(ref_vu_meter, {
         "boxCount": 10,
         "boxGapFraction": 0.25,
         "max": strtoint(data[13]*1000000),
       });
-      
+      vumeter(swr_vu_meter, {
+        "boxCount": 10,
+        "boxGapFraction": 0.25,
+        "max": 2,
+      }); 
     }
   };
   xhttp.open("GET", "readDATA", true);
@@ -404,7 +372,6 @@ function getDATA() {
     1
   </div>
 </div>
-
 
 <form method='post' action='config'><button class='button' value='config' name='config' type='submit'>Configuration</button></form>
 
