@@ -32,9 +32,6 @@ String config_defaults [ ] = {"true", "true", "true", "2", "true", "70cm", " ", 
 double fwd_array [3300] = {};
 double ref_array [3300] = {};
 
-//double fwd_highest_power = 0;
-//double ref_highest_power = 0;
-
 int voltage_fwd,voltage_ref;
 double fwd_dbm=0, ref_dbm=0;
 double fwd_watt=0, ref_watt=0;
@@ -180,7 +177,6 @@ double millivolt_to_dbm(int mv, bool fwd)
   }
 
 
-
   if (ascending) {
     for (int i=0; i<3300; i++) {
       if (fwd) {
@@ -225,11 +221,7 @@ double millivolt_to_dbm(int mv, bool fwd)
         }
       }
     }
-
   }
-
-  
-
  
   double lowerkey = min(lastkey, nextkey);
   double higherkey = max(lastkey, nextkey);
@@ -246,7 +238,6 @@ double millivolt_to_dbm(int mv, bool fwd)
     result = higherval - ((diffval / diffkey) * (mv - lowerkey));
   }
  
-  //Serial.print("measured voltage: " + String(mv) + "   LastVal: " + String(lastval) + "    LastKey: " + String(lastkey) + "   Nextval: " + String(nextval) + "   NextKey:" + String(nextkey) + "\n");
   return result;
 }
 
@@ -309,14 +300,12 @@ void handleNotFound()
 void handleDATA() {
   read_directional_couplers();
 
-
   double vswr = 0;
 
   if (fwd_watt>ref_watt){
     vswr = (1 + sqrt(ref_watt/fwd_watt)) / (1 - sqrt(ref_watt/fwd_watt));
   }
  
-
   String vswr_str = "-1";
   String fwd_watt_str = "";
   String ref_watt_str = "";
@@ -344,7 +333,6 @@ void handleDATA() {
     ref_dbm_str = String(ref_dbm,2);
   }
 
-  //String fwd_watt_str = "";
   if (config.getString(String("show_watt").c_str()) != "false") {
     fwd_watt_str = String(fwd_watt,10);
   }
@@ -352,7 +340,6 @@ void handleDATA() {
   if (config.getString(String("show_watt").c_str()) != "false") {
     ref_watt_str = String(ref_watt,10);
   }
-
 
   String rl_str = "-- ";
   if (rl > 0) {
@@ -424,8 +411,6 @@ void build_textareas() {
   String fwd = readFile(SPIFFS, String("/" + band + "fwd.txt").c_str());
   String ref = readFile(SPIFFS, String("/" + band + "ref.txt").c_str());
 
-  //Serial.println("From disk: "+ fwd);
-
   clear_fwd_ref_array();
 
   save_string_to_array(fwd, fwd_array);
@@ -489,7 +474,6 @@ void handleMODTRANS() {
   save_string_to_array(fwd,fwd_array);
   save_string_to_array(ref,ref_array);
 
-
   // OWN FUNCTION
   String fwd_of_array = "";
   for (int i=0; i<sizeof fwd_array/sizeof fwd_array[0]; i++) {
@@ -507,11 +491,9 @@ void handleMODTRANS() {
     }
   }
   writeFile(SPIFFS, String("/" + band + "ref.txt").c_str(), ref_of_array.c_str());
-
   build_textareas();
   handleCONFIG();
 }
-
 
 void clear_fwd_ref_array(){
   for (int x = 0; x < sizeof(fwd_array) / sizeof(fwd_array[0]); x++)
@@ -524,18 +506,14 @@ void clear_fwd_ref_array(){
 void save_string_to_array(String table_data, double arr []){
 
   int r=0,t=0;
-    
   for(int i=0;i<table_data.length();i++)
   {
     if(table_data[i] == '\n' || i==table_data.length())
     {
       if (i-r > 1)
       {
-        //tmp[t] = table_data.substring(r,i);
-        //Serial.println("row: " + table_data.substring(r,i));
         String row = table_data.substring(r,i);
         t++;
-
         int r2=0,t2=0;
         for(int j=0;j<row.length();j++)
         {
@@ -554,7 +532,6 @@ void save_string_to_array(String table_data, double arr []){
       }
       r = (i+1);
     }
-      
   }
 }
 
@@ -649,11 +626,7 @@ void setup()
     band = default_band;
   }
 
-  //Serial.println("band: " + band);
   build_textareas();
-  //Serial.println("done");
-
-
 }
 
 void loop()
