@@ -53,13 +53,13 @@ int IO4_REF = 4;
 WebServer server(80);
 
 // Select the IP address according to your local network
-//IPAddress myIP(192, 168, 88, 247);
-//IPAddress myGW(192, 168, 88, 1);
-//IPAddress mySN(255, 255, 255, 0);
+IPAddress myIP(192, 168, 1, 100);
+IPAddress myGW(192, 168, 1, 1);
+IPAddress mySN(255, 255, 255, 0);
+IPAddress myDNS(192, 168, 1, 1);
 
-// Google DNS Server IP
-//IPAddress myDNS(8, 8, 8, 8);
 
+// Reads a file from SPIFF and returns its content as a string 
 String readFile(fs::FS &fs, const char * path){
    Serial.printf("Reading file: %s\r\n", path);
 
@@ -77,6 +77,7 @@ String readFile(fs::FS &fs, const char * path){
    return ret;
 }
 
+// Takes a string and writes it to a file on SPIFF
 void writeFile(fs::FS &fs, const char * path, const char * message){
    Serial.printf("Writing file: %s\r\n", path);
 
@@ -106,6 +107,7 @@ bool is_val_out_of_bounds(int mv, bool fwd){
   int key_a = 0;
   int key_b = 0;
 
+  // searches for the first key (voltage) that has a value (dBm)
   for (int i=0; i<3300; i++) {
     if (fwd) {
       stored_val = fwd_array[i];
@@ -118,6 +120,7 @@ bool is_val_out_of_bounds(int mv, bool fwd){
     } 
   }
 
+  // searches for the last key (voltage) that has a value (dBm)
   for (int i=3299; i>0; i--) {
     if (fwd) {
       stored_val = fwd_array[i];
@@ -130,15 +133,16 @@ bool is_val_out_of_bounds(int mv, bool fwd){
     } 
   }
 
-  int lowerkey = min(key_a, key_b);
-  int higherkey = max(key_a, key_b);
-  //Serial.println("lowerkey: " + String(lowerkey) + "higherkey: " + String(higherkey));
+  int lowerkey = min(key_a, key_b); // takes both values found above and assigns the lower key
+  int higherkey = max(key_a, key_b); // takes both values found above and assigns the higher key
+
+  // returns false if given voltage is between the lowest and highest configured voltages
+  // returns true if voltage is out of bounds
   if (lowerkey <= mv and mv <= higherkey)
     return false;
   else {
     return true;
   }
-
 }
 
 // takes a voltage value and translates it
@@ -225,13 +229,15 @@ double millivolt_to_dbm(int mv, bool fwd)
  
   double lowerkey = min(lastkey, nextkey);
   double higherkey = max(lastkey, nextkey);
+
   double lowerval = min(lastval, nextval);
   double higherval = max(lastval, nextval);
 
-
   double diffkey = max(lastkey, nextkey) - min(lastkey, nextkey);
   double diffval = max(lastval, nextval) - min(lastval, nextval);
+
   double result = 0;
+
   if (ascending) {
     result = lowerval + ((diffval / diffkey) * (mv - lowerkey));
   } else {
@@ -243,22 +249,27 @@ double millivolt_to_dbm(int mv, bool fwd)
 
 
 // read voltages from both input pins
-// calculates avaerage value of 20 measurements
+// calculates avaerage value of 50 measurements
 void read_directional_couplers()
 { 
   int voltage_sum_fwd = 0;
   int voltage_sum_ref = 0;
-  for(iii=0; iii<50; iii++)                                     // Take 50 samples and save the highest value
+
+  // Takes 50 samples and sums them up
+  for(iii=0; iii<50; iii++)                                     
   { voltage_sum_fwd += analogReadMilliVolts(IO2_FWD);
     voltage_sum_ref += analogReadMilliVolts(IO4_REF);
   }
 
-  voltage_fwd = voltage_sum_fwd/50;                                         // use peak voltage for processing
+  // calculate the average value by deviding the above sum by 50
+  voltage_fwd = voltage_sum_fwd/50;  
   voltage_ref = voltage_sum_ref/50;
 
+  // calculate the dBm value from the voltage based on the calibration table
   fwd_dbm = millivolt_to_dbm(voltage_fwd, true);
   ref_dbm = millivolt_to_dbm(voltage_ref, false);
 
+  // calculate watt from dBm
   fwd_watt = dbm_to_watt(fwd_dbm);
   ref_watt = dbm_to_watt(ref_dbm);
 
@@ -353,20 +364,33 @@ void handleDATA() {
   bool fwd_oob = is_val_out_of_bounds(voltage_fwd, true);
   bool ref_oob = is_val_out_of_bounds(voltage_ref, false);
 
-  String output = fwd_watt_str + ";" + fwd_dbm_str + ";" + voltage_fwd_str + ";" + ref_watt_str + ";";
-  output += ref_dbm_str + ";" + voltage_ref_str + ";" + vswr_str + ";" + rl_str + ";" + band + ";";
-  output += String(vswr_threshold) + ";" + antenna_name + ";" + vswr_beep + ";";
-  output += config.getString(String("max_led_pwr_fwd").c_str()) + ";" + config.getString(String("max_led_pwr_ref").c_str()) + ";";
-  output += config.getString(String("max_led_vswr").c_str()) + ";" + String(fwd_oob) + ";" + String(ref_oob) + ";";
-  output += config.getString(String("show_led_fwd").c_str()) + ";" + config.getString(String("show_led_ref").c_str()) + ";" + config.getString(String("show_led_vswr").c_str());
+  // Generate a semicolon seperated string that will be sent to the frontend
+  String output = fwd_watt_str + ";"; // data[0]: FWD power in Watt
+  output += fwd_dbm_str + ";"; // data[1]: FWD dBm value
+  output += voltage_fwd_str + ";"; // data[2]: FWD voltage
+  output += ref_watt_str + ";"; // data[3]: REF power in Watt
+  output += ref_dbm_str + ";"; // data[4]: REF dBm value
+  output += voltage_ref_str + ";"; // data[5]: REF voltage
+  output += vswr_str + ";"; // data[6]: VSWR value
+  output += rl_str + ";"; // data[7]: RL value
+  output += band + ";"; // data[8]: band (e.g. "70cm")
+  output += String(vswr_threshold) + ";"; // data[9]: VSWR threshold (e.g. "3")
+  output += antenna_name + ";"; // data[10]: // Name of antenna (e.g. "X200")
+  output += vswr_beep + ";"; // data[11]: should it beep if VSWR is too high? (true/false)
+  output += config.getString(String("max_led_pwr_fwd").c_str()) + ";"; // data[12]: highest value in Watt for the FWD LED graph (e.g. "100")
+  output += config.getString(String("max_led_pwr_ref").c_str()) + ";"; // data[13]: highest value in Watt for the REF LED graph (e.g. "1")
+  output += config.getString(String("max_led_vswr").c_str()) + ";"; // data[14]: highest value in Watt for the VSWR LED graph (e.g. "3")
+  output += String(fwd_oob) + ";"; // data[15]: Is the FWD voltage out of bounds? (true/false)
+  output += String(ref_oob) + ";"; // data[16]: Is the REF voltage out of bounds? (true/false)
+  output += config.getString(String("show_led_fwd").c_str()) + ";"; // data[17]: Show the FWD LED bar graph? (true/false)
+  output += config.getString(String("show_led_ref").c_str()) + ";"; // data[18]: Show the REF LED bar graph? (true/false)
+  output += config.getString(String("show_led_vswr").c_str()); // data[19]: Show the VSWR LED bar graph? (true/false)
   server.send(200, "text/plane", output);
 }
 
 // main function for displaying the configuration page
 // invoked by the "configuration" button on the dashboard page
 void handleCONFIG() {
-
-
   if (conf_textareas == "") {
     build_textareas();
   }
@@ -474,7 +498,6 @@ void handleMODTRANS() {
   save_string_to_array(fwd,fwd_array);
   save_string_to_array(ref,ref_array);
 
-  // OWN FUNCTION
   String fwd_of_array = "";
   for (int i=0; i<sizeof fwd_array/sizeof fwd_array[0]; i++) {
     if (fwd_array[i] != 0){
@@ -483,7 +506,6 @@ void handleMODTRANS() {
   }
   writeFile(SPIFFS, String("/" + band + "fwd.txt").c_str(), fwd_of_array.c_str());
 
-
   String ref_of_array = "";
   for (int i=0; i<sizeof ref_array/sizeof ref_array[0]; i++) {
     if (ref_array[i] != 0){
@@ -491,10 +513,12 @@ void handleMODTRANS() {
     }
   }
   writeFile(SPIFFS, String("/" + band + "ref.txt").c_str(), ref_of_array.c_str());
+
   build_textareas();
   handleCONFIG();
 }
 
+// resets all vlaues in the FWD and REF array
 void clear_fwd_ref_array(){
   for (int x = 0; x < sizeof(fwd_array) / sizeof(fwd_array[0]); x++)
   {
@@ -503,8 +527,10 @@ void clear_fwd_ref_array(){
   }
 }
 
+// after the user edited the calibration table via the frontend,
+// this function takes the resulting string, detonates it and
+// writes all rows into an array
 void save_string_to_array(String table_data, double arr []){
-
   int r=0,t=0;
   for(int i=0;i<table_data.length();i++)
   {
@@ -591,8 +617,8 @@ void setup()
   WT32_ETH01_onEvent();
   
   ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER);
-  // Static IP, leave without this line to get IP via DHCP
 
+  // Static IP, leave without this line to get IP via DHCP
   //ETH.config(myIP, myGW, mySN, myDNS);
 
   WT32_ETH01_waitForConnect();
