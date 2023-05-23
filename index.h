@@ -44,6 +44,7 @@ const char MAIN_page[] PROGMEM = R"=====(
 
 <script>
 var okaytogo = true;
+var vu_meters_loaded = false;
 
 // Function for drawing the LED bar graphs
 function vumeter(elem, config){
@@ -172,6 +173,23 @@ setInterval(function() {
   getDATA();
 }, 500);
 
+function load_vu_meters() {
+  vumeter(fwd_vu_meter, {
+    "boxCount": 10,
+    "boxGapFraction": 0.25,
+    "max": strtoint(data[12]*1000000),
+  });
+  vumeter(ref_vu_meter, {
+    "boxCount": 10,
+    "boxGapFraction": 0.25,
+    "max": strtoint(data[13]*1000000),
+  });
+  vumeter(swr_vu_meter, {
+    "boxCount": 10,
+    "boxGapFraction": 0.25,
+    "max": 2,
+  }); 
+}
 
 // plays a beep sound
 function beep() {
@@ -327,21 +345,10 @@ function getDATA() {
       } else {
         document.getElementById("vswr_led_box").style.display = 'none';
       }
-      vumeter(fwd_vu_meter, {
-        "boxCount": 10,
-        "boxGapFraction": 0.25,
-        "max": strtoint(data[12]*1000000),
-      });
-      vumeter(ref_vu_meter, {
-        "boxCount": 10,
-        "boxGapFraction": 0.25,
-        "max": strtoint(data[13]*1000000),
-      });
-      vumeter(swr_vu_meter, {
-        "boxCount": 10,
-        "boxGapFraction": 0.25,
-        "max": 2,
-      }); 
+      if (!vu_meters_loaded){
+        load_vu_meters();
+        vu_meters_loaded = true;
+      }
     }
   };
   xhttp.open("GET", "readDATA", true);
