@@ -281,18 +281,20 @@ function getDATA() {
         }
       }
       document.getElementById("VSWRValue").innerHTML = data[6];
-      document.getElementById("RLValue").innerHTML = data[7];
+      //document.getElementById("RLValue").innerHTML = data[7];
       document.getElementById("BANDValue").innerHTML = data[8]; // displays the chosen band
       document.getElementById("AntennaName").innerHTML = data[10]; // displays the name of the antenna
       document.getElementById("max_led_pwr_fwd").innerHTML = data[12]; // sets the FWD LED bar max value
       document.getElementById("max_led_pwr_ref").innerHTML = data[13]; // sets the REF LED bar max value
       document.getElementById("max_led_vswr").innerHTML = data[14]; // sets the VSWR LED bar max value
       // displays "--" as VSWR if the value is too high or number is invalid
-      if (data[6] == "-1" || data[6] == "inf") {
+      if (data[6] == "-1" || data[6] == "inf" || data[15] == "1" || data[16] == "1") {
         document.getElementById("VSWRValue").innerHTML = "--";
+        document.getElementById("RLValue").innerHTML = "--";
         document.getElementById("vswr_box").className = "box redbox";
       } else {
         // VSWR is ok
+        document.getElementById("RLValue").innerHTML = data[7];
         document.getElementById("VSWRValue").innerHTML = data[6];
         // displays the VSWR box with red background if VSWR value is higher than the user configured limit
         if (parseFloat(data[6]) >= parseFloat(data[9]) || data[6] == "inf") {
