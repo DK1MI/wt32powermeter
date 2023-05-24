@@ -29,8 +29,9 @@ String version = "0.9";
 
 Preferences config;
 
-String config_items[] = { "show_mV", "show_dBm", "show_watt", "vswr_threshold", "vswr_beep", "selected_band", "antenna_name", "max_led_pwr_fwd", "max_led_pwr_ref", "max_led_vswr", "show_led_fwd", "show_led_ref", "show_led_vswr" };
+String config_items[] = { "b_show_mV", "b_show_dBm", "b_show_watt", "s_vswr_thresh", "b_vswr_beep", "x_selected_band", "s_ant_name", "s_max_led_pwr_f", "s_max_led_pwr_r", "s_max_led_vswr", "b_show_led_fwd", "b_show_led_ref", "b_show_led_vswr" };
 String config_defaults[] = { "true", "true", "true", "2", "true", "70cm", " ", "100", "100", "3", "true", "true", "true" };
+String config_nice_names[] = {"Show voltage in mV (yes/no)", "Show power level in dBm (yes/no)", "Show Power in Watt (yes/no)", "VSWR Threshold that triggers a warning (e.g. 3)", "Beep if VSWR threshold is exceeded (yes/no)", "", "Name of the antenna", "Max. FWD Power displayed by LED bar graph in W (e.g. 100)", "Max. REF Power displayed by LED bar graph in W (e.g. 100)", "Max. VSWR displayed by LED bar graph (e.g. 3)", "Show LED graph for FWD power (yes/no)", "Show LED graph for REF power (yes/no)", "Show LED graph for VSWR (yes/no)" }; 
 double fwd_array[3300] = {};
 double ref_array[3300] = {};
 
@@ -324,27 +325,27 @@ void handleDATA() {
   double rl = fwd_dbm - ref_dbm;
 
   // get vswr_threshold from general config
-  String vswr_threshold = config.getString(String("vswr_threshold").c_str());
+  String vswr_threshold = config.getString(String("s_vswr_thresh").c_str());
 
   String voltage_fwd_str = "";
   String voltage_ref_str = "";
-  if (config.getString(String("show_mV").c_str()) != "false") {
+  if (config.getString(String("b_show_mV").c_str()) != "false") {
     voltage_fwd_str = String(voltage_fwd) + " mV";
     voltage_ref_str = String(voltage_ref) + " mV";
   }
 
   String fwd_dbm_str = "";
   String ref_dbm_str = "";
-  if (config.getString(String("show_dBm").c_str()) != "false") {
+  if (config.getString(String("b_show_dBm").c_str()) != "false") {
     fwd_dbm_str = String(fwd_dbm, 2);
     ref_dbm_str = String(ref_dbm, 2);
   }
 
-  if (config.getString(String("show_watt").c_str()) != "false") {
+  if (config.getString(String("b_show_watt").c_str()) != "false") {
     fwd_watt_str = String(fwd_watt, 10);
   }
 
-  if (config.getString(String("show_watt").c_str()) != "false") {
+  if (config.getString(String("b_show_watt").c_str()) != "false") {
     ref_watt_str = String(ref_watt, 10);
   }
 
@@ -354,8 +355,8 @@ void handleDATA() {
   }
   rl_str.replace("nan", "-- ");
 
-  String antenna_name = config.getString(String("antenna_name").c_str());
-  String vswr_beep = config.getString(String("vswr_beep").c_str());
+  String antenna_name = config.getString(String("s_ant_name").c_str());
+  String vswr_beep = config.getString(String("b_vswr_beep").c_str());
 
   bool fwd_oob = is_val_out_of_bounds(voltage_fwd, true);
   bool ref_oob = is_val_out_of_bounds(voltage_ref, false);
@@ -371,16 +372,16 @@ void handleDATA() {
   output += rl_str + ";";                                               // data[7]: RL value
   output += band + ";";                                                 // data[8]: band (e.g. "70cm")
   output += String(vswr_threshold) + ";";                               // data[9]: VSWR threshold (e.g. "3")
-  output += antenna_name + ";";                                         // data[10]: // Name of antenna (e.g. "X200")
+  output += antenna_name + ";";                                         // data[10]: Name of antenna (e.g. "X200")
   output += vswr_beep + ";";                                            // data[11]: should it beep if VSWR is too high? (true/false)
-  output += config.getString(String("max_led_pwr_fwd").c_str()) + ";";  // data[12]: highest value in Watt for the FWD LED graph (e.g. "100")
-  output += config.getString(String("max_led_pwr_ref").c_str()) + ";";  // data[13]: highest value in Watt for the REF LED graph (e.g. "1")
-  output += config.getString(String("max_led_vswr").c_str()) + ";";     // data[14]: highest value in Watt for the VSWR LED graph (e.g. "3")
+  output += config.getString(String("s_max_led_pwr_f").c_str()) + ";";  // data[12]: highest value in Watt for the FWD LED graph (e.g. "100")
+  output += config.getString(String("s_max_led_pwr_r").c_str()) + ";";  // data[13]: highest value in Watt for the REF LED graph (e.g. "1")
+  output += config.getString(String("s_max_led_vswr").c_str()) + ";";   // data[14]: highest value in Watt for the VSWR LED graph (e.g. "3")
   output += String(fwd_oob) + ";";                                      // data[15]: Is the FWD voltage out of bounds? (true/false)
   output += String(ref_oob) + ";";                                      // data[16]: Is the REF voltage out of bounds? (true/false)
-  output += config.getString(String("show_led_fwd").c_str()) + ";";     // data[17]: Show the FWD LED bar graph? (true/false)
-  output += config.getString(String("show_led_ref").c_str()) + ";";     // data[18]: Show the REF LED bar graph? (true/false)
-  output += config.getString(String("show_led_vswr").c_str());          // data[19]: Show the VSWR LED bar graph? (true/false)
+  output += config.getString(String("b_show_led_fwd").c_str()) + ";";   // data[17]: Show the FWD LED bar graph? (true/false)
+  output += config.getString(String("b_show_led_ref").c_str()) + ";";   // data[18]: Show the REF LED bar graph? (true/false)
+  output += config.getString(String("b_show_led_vswr").c_str());        // data[19]: Show the VSWR LED bar graph? (true/false)
   server.send(200, "text/plane", output);
 }
 
@@ -467,27 +468,31 @@ void build_textareas() {
 void build_config_table() {
   conf_config_table = "<form action=\"/modcfg\" method=\"POST\">";
   conf_config_table += "<table class='styled-table'>";
-  conf_config_table += "<thead><tr><td>Key</td><td>Value</td></td><td>Action</td></tr></thead>";
+  conf_config_table += "<thead><tr><td>Key</td><td>Value</td></td></tr></thead>";
   for (int i = 0; i < sizeof config_items / sizeof config_items[0]; i++) {
-    String stored_val = config.getString(config_items[i].c_str(), "xxx");
-    if (stored_val == "xxx") {
-      config.putString(config_items[i].c_str(), config_defaults[i]);
-      stored_val = config.getString(config_items[i].c_str(), "");
+    if (!config_items[i].startsWith("x_")) {
+      String stored_val = config.getString(config_items[i].c_str(), "xxx");
+      if (stored_val == "xxx") {
+        config.putString(config_items[i].c_str(), config_defaults[i]);
+        stored_val = config.getString(config_items[i].c_str(), "");
+      }
+      conf_config_table += "<tr><td>";
+      conf_config_table += config_nice_names[i];
+      conf_config_table += "</td><td>";
+      
+      if (String(stored_val).equalsIgnoreCase("true")) {
+        //conf_config_table += "<input type='hidden' name='" + config_items[i] + "' value='false'>";
+        conf_config_table += "<input type='checkbox' name='" + config_items[i] + "' id='" + config_items[i] + "' value='true' checked>";
+      } else if (String(stored_val).equalsIgnoreCase("false")) {
+        //conf_config_table += "<input type='hidden' name='" + config_items[i] + "' value='false'>";
+        conf_config_table += "<input type='checkbox' name='" + config_items[i] + "' id='" + config_items[i] + "' value='false'>";
+      } else {
+        conf_config_table += "<input name='" + config_items[i] + "' value='" + String(stored_val) + "' valuelength=16>";
+      }
+      conf_config_table += "</td></tr>";
     }
-    conf_config_table += "<tr><td>";
-    conf_config_table += config_items[i];
-    conf_config_table += "</td><td>";
-    //if (String(stored_val).equalsIgnoreCase("true")) {
-    //  conf_config_table += "<input type='checkbox' name=" + config_items[i] + " value=" + config_items[i]+ " checked>";
-    //} else if (String(stored_val).equalsIgnoreCase("false")) {
-    //  conf_config_table += "<input type='checkbox' name=" + config_items[i] + " value=" + config_items[i]+ ">";
-    //} else {
-      conf_config_table += String(stored_val);
-    //}
-    conf_config_table += "</td><td>";
-    conf_config_table += "</td></tr>";
   }
-  conf_config_table += "<tr><td><input name='conf_key' length=16></td><td><input name='conf_value' length=16></td><td><button class='button' type='submit'>edit</button></td></tr>";
+  conf_config_table += "<tr><td></td><td><button class='button' type='submit'>Save</button></td></tr>";
   conf_config_table += "</table></form>";
   handleCONFIG();
 }
@@ -558,11 +563,13 @@ void save_string_to_array(String table_data, double arr[]) {
 }
 
 // Handle request from the config page to change or add values
-// to the genral config value table for the selected band
+// to the general config value table for the selected band
 void handleMODCFG() {
-  String key = server.arg("conf_key");
-  String value = server.arg("conf_value");
+  //String key = server.arg("conf_key");
+  //String value = server.arg("conf_value");
   for (int i = 0; i < sizeof config_items / sizeof config_items[0]; i++) {
+    Serial.println(config_items[i] + ": " + server.arg(config_items[i]));
+    /*
     if (config_items[i] == key) {
       if (key != "" and value != "") {
         config.putString(config_items[i].c_str(), value);
@@ -570,19 +577,28 @@ void handleMODCFG() {
         break;
       }
     }
+    */
+    if (!server.hasArg(config_items[i]) and config_items[i].startsWith("b_")){
+      config.putString(config_items[i].c_str(), "false");
+    } else if (server.hasArg(config_items[i]) and config_items[i].startsWith("b_")){
+      config.putString(config_items[i].c_str(), "true");
+    } else {
+      config.putString(config_items[i].c_str(), server.arg(config_items[i]));
+    }   
   }
+  conf_config_table = "";
   build_config_table();
 }
 
 // changes the band according to the user's selection
 // regenerates the translation tables and fills them
 // with the values assigned to the respective band
-// invoked by selecting a band from the select box of teh config page
+// invoked by selecting a band from the select box of the config page
 void handleBAND() {
   band = server.arg("bands");
   band_fwd = band + "_fwd";
   band_ref = band + "_ref";
-  config.putString(String("selected_band").c_str(), band);
+  config.putString(String("x_selected_band").c_str(), band);
   conf_textareas = "";
   conf_config_table = "";
   //build_config_table();
@@ -592,10 +608,7 @@ void handleBAND() {
 
 // initialization routine
 void setup() {
-  // DELETEME: Cleanup from old ver
-  config.remove(String("show_fwd").c_str());
-  config.remove(String("show_ref").c_str());
-  config.remove(String("show_swr").c_str());
+
 
   Serial.begin(115200);
 
@@ -642,9 +655,9 @@ void setup() {
   analogReadResolution(12);
 
   config.begin("config", false);
-  band = config.getString(String("selected_band").c_str());
+  band = config.getString(String("x_selected_band").c_str());
   if (band == "") {
-    config.putString(String("selected_band").c_str(), default_band);
+    config.putString(String("x_selected_band").c_str(), default_band);
     band = default_band;
   }
 
