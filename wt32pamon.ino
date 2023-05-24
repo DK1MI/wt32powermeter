@@ -30,9 +30,9 @@ String version = "0.9";
 Preferences config;
 Preferences global_config;
 
-String band_config_items[] = { "b_show_mV", "b_show_dBm", "b_show_watt", "s_vswr_thresh", "b_vswr_beep", "x_selected_band", "s_ant_name", "s_max_led_pwr_f", "s_max_led_pwr_r", "s_max_led_vswr", "b_show_led_fwd", "b_show_led_ref", "b_show_led_vswr" };
-String band_config_defaults[] = { "true", "true", "true", "2", "true", "70cm", " ", "100", "100", "3", "true", "true", "true" };
-String band_config_nice_names[] = {"Show voltage in mV (yes/no)", "Show power level in dBm (yes/no)", "Show Power in Watt (yes/no)", "VSWR Threshold that triggers a warning (e.g. 3)", "Beep if VSWR threshold is exceeded (yes/no)", "", "Name of the antenna", "Max. FWD Power displayed by LED bar graph in W (e.g. 100)", "Max. REF Power displayed by LED bar graph in W (e.g. 100)", "Max. VSWR displayed by LED bar graph (e.g. 3)", "Show LED graph for FWD power (yes/no)", "Show LED graph for REF power (yes/no)", "Show LED graph for VSWR (yes/no)" }; 
+String band_config_items[] = { "b_show_mV", "b_show_dBm", "b_show_watt", "s_vswr_thresh", "b_vswr_beep", "s_ant_name", "s_max_led_pwr_f", "s_max_led_pwr_r", "s_max_led_vswr", "b_show_led_fwd", "b_show_led_ref", "b_show_led_vswr" };
+String band_config_defaults[] = { "true", "true", "true", "2", "true", " ", "100", "100", "3", "true", "true", "true" };
+String band_config_nice_names[] = {"Show voltage in mV (yes/no)", "Show power level in dBm (yes/no)", "Show Power in Watt (yes/no)", "VSWR Threshold that triggers a warning (e.g. 3)", "Beep if VSWR threshold is exceeded (yes/no)", "Name of the antenna", "Max. FWD Power displayed by LED bar graph in W (e.g. 100)", "Max. REF Power displayed by LED bar graph in W (e.g. 100)", "Max. VSWR displayed by LED bar graph (e.g. 3)", "Show LED graph for FWD power (yes/no)", "Show LED graph for REF power (yes/no)", "Show LED graph for VSWR (yes/no)" }; 
 
 double fwd_array[3300] = {};
 double ref_array[3300] = {};
@@ -483,10 +483,8 @@ void build_config_table() {
       conf_config_table += "</td><td>";
       
       if (String(stored_val).equalsIgnoreCase("true")) {
-        //conf_config_table += "<input type='hidden' name='" + band_config_items[i] + "' value='false'>";
         conf_config_table += "<input type='checkbox' name='" + band_config_items[i] + "' id='" + band_config_items[i] + "' value='true' checked>";
       } else if (String(stored_val).equalsIgnoreCase("false")) {
-        //conf_config_table += "<input type='hidden' name='" + band_config_items[i] + "' value='false'>";
         conf_config_table += "<input type='checkbox' name='" + band_config_items[i] + "' id='" + band_config_items[i] + "' value='false'>";
       } else {
         conf_config_table += "<input name='" + band_config_items[i] + "' value='" + String(stored_val) + "' valuelength=16>";
@@ -567,19 +565,7 @@ void save_string_to_array(String table_data, double arr[]) {
 // Handle request from the config page to change or add values
 // to the general config value table for the selected band
 void handleMODCFG() {
-  //String key = server.arg("conf_key");
-  //String value = server.arg("conf_value");
   for (int i = 0; i < sizeof band_config_items / sizeof band_config_items[0]; i++) {
-    Serial.println(band_config_items[i] + ": " + server.arg(band_config_items[i]));
-    /*
-    if (band_config_items[i] == key) {
-      if (key != "" and value != "") {
-        config.putString(band_config_items[i].c_str(), value);
-        conf_config_table = "";
-        break;
-      }
-    }
-    */
     if (!server.hasArg(band_config_items[i]) and band_config_items[i].startsWith("b_")){
       config.putString(band_config_items[i].c_str(), "false");
     } else if (server.hasArg(band_config_items[i]) and band_config_items[i].startsWith("b_")){
@@ -667,7 +653,6 @@ void setup() {
   }
   String bnd_cnf = "config_" + band;
   config.begin(bnd_cnf.c_str(), false);
-  //config.begin("config_" + band, false);
 
   build_textareas();
 }
