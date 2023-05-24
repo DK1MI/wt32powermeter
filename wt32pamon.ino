@@ -11,10 +11,10 @@
   
  *****************************************************************************************************************************/
 
-#define DEBUG_ETHERNET_WEBSERVER_PORT       Serial
+#define DEBUG_ETHERNET_WEBSERVER_PORT Serial
 
 // Debug Level from 0 to 4
-#define _ETHERNET_WEBSERVER_LOGLEVEL_      3
+#define _ETHERNET_WEBSERVER_LOGLEVEL_ 3
 
 #define FORMAT_SPIFFS_IF_FAILED true
 
@@ -25,17 +25,19 @@
 #include "FS.h"
 #include "SPIFFS.h"
 
+String version = "0.9";
+
 Preferences config;
 
-String config_items [ ] = {"show_mV", "show_dBm", "show_watt", "vswr_threshold", "vswr_beep", "selected_band", "antenna_name", "max_led_pwr_fwd", "max_led_pwr_ref", "max_led_vswr", "show_led_fwd", "show_led_ref", "show_led_vswr"};
-String config_defaults [ ] = {"true", "true", "true", "2", "true", "70cm", " ", "100", "100", "3", "true", "true", "true"};
-double fwd_array [3300] = {};
-double ref_array [3300] = {};
+String config_items[] = { "show_mV", "show_dBm", "show_watt", "vswr_threshold", "vswr_beep", "selected_band", "antenna_name", "max_led_pwr_fwd", "max_led_pwr_ref", "max_led_vswr", "show_led_fwd", "show_led_ref", "show_led_vswr" };
+String config_defaults[] = { "true", "true", "true", "2", "true", "70cm", " ", "100", "100", "3", "true", "true", "true" };
+double fwd_array[3300] = {};
+double ref_array[3300] = {};
 
-int voltage_fwd,voltage_ref;
-double fwd_dbm=0, ref_dbm=0;
-double fwd_watt=0, ref_watt=0;
-byte iii=0;
+int voltage_fwd, voltage_ref;
+double fwd_dbm = 0, ref_dbm = 0;
+double fwd_watt = 0, ref_watt = 0;
+byte iii = 0;
 
 String conf_content;
 String conf_textareas = "";
@@ -45,7 +47,7 @@ String band = "";
 String default_band = "70cm";
 String band_fwd = band + "_fwd";
 String band_ref = band + "_ref";
-String band_list []= {"1.25cm", "3cm", "6cm", "9cm", "13cm", "23cm", "70cm", "2m", "HF"};
+String band_list[] = { "1.25cm", "3cm", "6cm", "9cm", "13cm", "23cm", "70cm", "2m", "HF" };
 
 int IO2_FWD = 2;
 int IO4_REF = 4;
@@ -59,56 +61,56 @@ IPAddress mySN(255, 255, 255, 0);
 IPAddress myDNS(192, 168, 1, 1);
 
 
-// Reads a file from SPIFF and returns its content as a string 
-String readFile(fs::FS &fs, const char * path){
-   Serial.printf("Reading file: %s\r\n", path);
+// Reads a file from SPIFF and returns its content as a string
+String readFile(fs::FS &fs, const char *path) {
+  Serial.printf("Reading file: %s\r\n", path);
 
-   File file = fs.open(path);
-   if(!file || file.isDirectory()){
-       Serial.println("failed to open file for reading");
-       return "";
-   }
+  File file = fs.open(path);
+  if (!file || file.isDirectory()) {
+    Serial.println("failed to open file for reading");
+    return "";
+  }
   String ret = "";
-   Serial.println("read from file:");
-   while(file.available()){
-      ret+=char(file.read());
-   }
-   file.close();
-   return ret;
+  Serial.println("read from file:");
+  while (file.available()) {
+    ret += char(file.read());
+  }
+  file.close();
+  return ret;
 }
 
 // Takes a string and writes it to a file on SPIFF
-void writeFile(fs::FS &fs, const char * path, const char * message){
-   Serial.printf("Writing file: %s\r\n", path);
+void writeFile(fs::FS &fs, const char *path, const char *message) {
+  Serial.printf("Writing file: %s\r\n", path);
 
-   File file = fs.open(path, FILE_WRITE);
-   if(!file){
-      Serial.println("failed to open file for writing");
-      return;
-   }
-   if(file.print(message)){
-      Serial.println("file written");
-   }else {
-      Serial.println("file write failed");
-   }
-   file.close();
+  File file = fs.open(path, FILE_WRITE);
+  if (!file) {
+    Serial.println("failed to open file for writing");
+    return;
+  }
+  if (file.print(message)) {
+    Serial.println("file written");
+  } else {
+    Serial.println("file write failed");
+  }
+  file.close();
 }
 
 
 // converts dBm to Watt
 double dbm_to_watt(double dbm) {
-  return pow( 10.0, (dbm - 30.0) / 10.0);
+  return pow(10.0, (dbm - 30.0) / 10.0);
 }
 
 // checks if a given voltage is lower as the smallest value
 // in the table or higher than the biggest value
-bool is_val_out_of_bounds(int mv, bool fwd){
+bool is_val_out_of_bounds(int mv, bool fwd) {
   double stored_val = 0;
   int key_a = 0;
   int key_b = 0;
 
   // searches for the first key (voltage) that has a value (dBm)
-  for (int i=0; i<3300; i++) {
+  for (int i = 0; i < 3300; i++) {
     if (fwd) {
       stored_val = fwd_array[i];
     } else {
@@ -117,11 +119,11 @@ bool is_val_out_of_bounds(int mv, bool fwd){
     if (stored_val != 0) {
       key_a = i;
       break;
-    } 
+    }
   }
 
   // searches for the last key (voltage) that has a value (dBm)
-  for (int i=3299; i>0; i--) {
+  for (int i = 3299; i > 0; i--) {
     if (fwd) {
       stored_val = fwd_array[i];
     } else {
@@ -130,11 +132,11 @@ bool is_val_out_of_bounds(int mv, bool fwd){
     if (stored_val != 0) {
       key_b = i;
       break;
-    } 
+    }
   }
 
-  int lowerkey = min(key_a, key_b); // takes both values found above and assigns the lower key
-  int higherkey = max(key_a, key_b); // takes both values found above and assigns the higher key
+  int lowerkey = min(key_a, key_b);   // takes both values found above and assigns the lower key
+  int higherkey = max(key_a, key_b);  // takes both values found above and assigns the higher key
 
   // returns false if given voltage is between the lowest and highest configured voltages
   // returns true if voltage is out of bounds
@@ -147,8 +149,7 @@ bool is_val_out_of_bounds(int mv, bool fwd){
 
 // takes a voltage value and translates it
 // to dBm based on the corresponding lookup table
-double millivolt_to_dbm(int mv, bool fwd)
-{
+double millivolt_to_dbm(int mv, bool fwd) {
   double lastval = 0;
   double nextval = 0;
   int lastkey = 0;
@@ -161,7 +162,7 @@ double millivolt_to_dbm(int mv, bool fwd)
 
   // check if table is ascending or descending
   double asc_tmp_val = 0;
-  for (int i=0; i<3300; i++) {
+  for (int i = 0; i < 3300; i++) {
     if (fwd) {
       stored_val = fwd_array[i];
     } else {
@@ -177,23 +178,23 @@ double millivolt_to_dbm(int mv, bool fwd)
         ascending = false;
         break;
       }
-    } 
+    }
   }
 
 
   if (ascending) {
-    for (int i=0; i<3300; i++) {
+    for (int i = 0; i < 3300; i++) {
       if (fwd) {
         stored_val = fwd_array[i];
       } else {
         stored_val = ref_array[i];
       }
       if (stored_val != 0) {
-        if (lowest_key_in_table == 0){
-          lowest_key_in_table = i; //finds the lowest voltage value stored in the table
+        if (lowest_key_in_table == 0) {
+          lowest_key_in_table = i;  //finds the lowest voltage value stored in the table
         }
-        highest_key_in_table = i; // we will have the highest voltage value in the table at the end of the loop
-        if (i <  mv) {
+        highest_key_in_table = i;  // we will have the highest voltage value in the table at the end of the loop
+        if (i < mv) {
           lastval = stored_val;
           lastkey = i;
         } else {
@@ -204,18 +205,18 @@ double millivolt_to_dbm(int mv, bool fwd)
       }
     }
   } else {
-    for (int i=3300; i>0; i--) {
+    for (int i = 3300; i > 0; i--) {
       if (fwd) {
         stored_val = fwd_array[i];
       } else {
         stored_val = ref_array[i];
       }
       if (stored_val != 0) {
-        if (lowest_key_in_table == 0){
-          lowest_key_in_table = i; //finds the lowest voltage value stored in the table
+        if (lowest_key_in_table == 0) {
+          lowest_key_in_table = i;  //finds the lowest voltage value stored in the table
         }
-        highest_key_in_table = i; // we will have the highest voltage value in the table at the end of the loop
-        if (i >  mv) {
+        highest_key_in_table = i;  // we will have the highest voltage value in the table at the end of the loop
+        if (i > mv) {
           lastval = stored_val;
           lastkey = i;
         } else {
@@ -226,7 +227,7 @@ double millivolt_to_dbm(int mv, bool fwd)
       }
     }
   }
- 
+
   double lowerkey = min(lastkey, nextkey);
   double higherkey = max(lastkey, nextkey);
 
@@ -243,27 +244,26 @@ double millivolt_to_dbm(int mv, bool fwd)
   } else {
     result = higherval - ((diffval / diffkey) * (mv - lowerkey));
   }
- 
+
   return result;
 }
 
 
 // read voltages from both input pins
 // calculates avaerage value of 50 measurements
-void read_directional_couplers()
-{ 
+void read_directional_couplers() {
   int voltage_sum_fwd = 0;
   int voltage_sum_ref = 0;
 
   // Takes 50 samples and sums them up
-  for(iii=0; iii<50; iii++)                                     
-  { voltage_sum_fwd += analogReadMilliVolts(IO2_FWD);
+  for (iii = 0; iii < 50; iii++) {
+    voltage_sum_fwd += analogReadMilliVolts(IO2_FWD);
     voltage_sum_ref += analogReadMilliVolts(IO4_REF);
   }
 
   // calculate the average value by deviding the above sum by 50
-  voltage_fwd = voltage_sum_fwd/50;  
-  voltage_ref = voltage_sum_ref/50;
+  voltage_fwd = voltage_sum_fwd / 50;
+  voltage_ref = voltage_sum_ref / 50;
 
   // calculate the dBm value from the voltage based on the calibration table
   fwd_dbm = millivolt_to_dbm(voltage_fwd, true);
@@ -272,20 +272,17 @@ void read_directional_couplers()
   // calculate watt from dBm
   fwd_watt = dbm_to_watt(fwd_dbm);
   ref_watt = dbm_to_watt(ref_dbm);
-
 }
 
 // delivers the dashboard page in "index.h"
-void handleRoot()
-{
+void handleRoot() {
   String s = MAIN_page;
   server.send(200, "text/html", s);
 }
 
 
 // delivers a 404 page if a non-existant resouurce is requested
-void handleNotFound()
-{
+void handleNotFound() {
   String message = F("File Not Found\n\n");
 
   message += F("URI: ");
@@ -296,8 +293,7 @@ void handleNotFound()
   message += server.args();
   message += F("\n");
 
-  for (uint8_t i = 0; i < server.args(); i++)
-  {
+  for (uint8_t i = 0; i < server.args(); i++) {
     message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
   }
 
@@ -313,10 +309,10 @@ void handleDATA() {
 
   double vswr = 0;
 
-  if (fwd_watt>ref_watt){
-    vswr = (1 + sqrt(ref_watt/fwd_watt)) / (1 - sqrt(ref_watt/fwd_watt));
+  if (fwd_watt > ref_watt) {
+    vswr = (1 + sqrt(ref_watt / fwd_watt)) / (1 - sqrt(ref_watt / fwd_watt));
   }
- 
+
   String vswr_str = "-1";
   String fwd_watt_str = "";
   String ref_watt_str = "";
@@ -340,16 +336,16 @@ void handleDATA() {
   String fwd_dbm_str = "";
   String ref_dbm_str = "";
   if (config.getString(String("show_dBm").c_str()) != "false") {
-    fwd_dbm_str = String(fwd_dbm,2);
-    ref_dbm_str = String(ref_dbm,2);
+    fwd_dbm_str = String(fwd_dbm, 2);
+    ref_dbm_str = String(ref_dbm, 2);
   }
 
   if (config.getString(String("show_watt").c_str()) != "false") {
-    fwd_watt_str = String(fwd_watt,10);
+    fwd_watt_str = String(fwd_watt, 10);
   }
 
   if (config.getString(String("show_watt").c_str()) != "false") {
-    ref_watt_str = String(ref_watt,10);
+    ref_watt_str = String(ref_watt, 10);
   }
 
   String rl_str = "-- ";
@@ -365,26 +361,26 @@ void handleDATA() {
   bool ref_oob = is_val_out_of_bounds(voltage_ref, false);
 
   // Generate a semicolon seperated string that will be sent to the frontend
-  String output = fwd_watt_str + ";"; // data[0]: FWD power in Watt
-  output += fwd_dbm_str + ";"; // data[1]: FWD dBm value
-  output += voltage_fwd_str + ";"; // data[2]: FWD voltage
-  output += ref_watt_str + ";"; // data[3]: REF power in Watt
-  output += ref_dbm_str + ";"; // data[4]: REF dBm value
-  output += voltage_ref_str + ";"; // data[5]: REF voltage
-  output += vswr_str + ";"; // data[6]: VSWR value
-  output += rl_str + ";"; // data[7]: RL value
-  output += band + ";"; // data[8]: band (e.g. "70cm")
-  output += String(vswr_threshold) + ";"; // data[9]: VSWR threshold (e.g. "3")
-  output += antenna_name + ";"; // data[10]: // Name of antenna (e.g. "X200")
-  output += vswr_beep + ";"; // data[11]: should it beep if VSWR is too high? (true/false)
-  output += config.getString(String("max_led_pwr_fwd").c_str()) + ";"; // data[12]: highest value in Watt for the FWD LED graph (e.g. "100")
-  output += config.getString(String("max_led_pwr_ref").c_str()) + ";"; // data[13]: highest value in Watt for the REF LED graph (e.g. "1")
-  output += config.getString(String("max_led_vswr").c_str()) + ";"; // data[14]: highest value in Watt for the VSWR LED graph (e.g. "3")
-  output += String(fwd_oob) + ";"; // data[15]: Is the FWD voltage out of bounds? (true/false)
-  output += String(ref_oob) + ";"; // data[16]: Is the REF voltage out of bounds? (true/false)
-  output += config.getString(String("show_led_fwd").c_str()) + ";"; // data[17]: Show the FWD LED bar graph? (true/false)
-  output += config.getString(String("show_led_ref").c_str()) + ";"; // data[18]: Show the REF LED bar graph? (true/false)
-  output += config.getString(String("show_led_vswr").c_str()); // data[19]: Show the VSWR LED bar graph? (true/false)
+  String output = fwd_watt_str + ";";                                   // data[0]: FWD power in Watt
+  output += fwd_dbm_str + ";";                                          // data[1]: FWD dBm value
+  output += voltage_fwd_str + ";";                                      // data[2]: FWD voltage
+  output += ref_watt_str + ";";                                         // data[3]: REF power in Watt
+  output += ref_dbm_str + ";";                                          // data[4]: REF dBm value
+  output += voltage_ref_str + ";";                                      // data[5]: REF voltage
+  output += vswr_str + ";";                                             // data[6]: VSWR value
+  output += rl_str + ";";                                               // data[7]: RL value
+  output += band + ";";                                                 // data[8]: band (e.g. "70cm")
+  output += String(vswr_threshold) + ";";                               // data[9]: VSWR threshold (e.g. "3")
+  output += antenna_name + ";";                                         // data[10]: // Name of antenna (e.g. "X200")
+  output += vswr_beep + ";";                                            // data[11]: should it beep if VSWR is too high? (true/false)
+  output += config.getString(String("max_led_pwr_fwd").c_str()) + ";";  // data[12]: highest value in Watt for the FWD LED graph (e.g. "100")
+  output += config.getString(String("max_led_pwr_ref").c_str()) + ";";  // data[13]: highest value in Watt for the REF LED graph (e.g. "1")
+  output += config.getString(String("max_led_vswr").c_str()) + ";";     // data[14]: highest value in Watt for the VSWR LED graph (e.g. "3")
+  output += String(fwd_oob) + ";";                                      // data[15]: Is the FWD voltage out of bounds? (true/false)
+  output += String(ref_oob) + ";";                                      // data[16]: Is the REF voltage out of bounds? (true/false)
+  output += config.getString(String("show_led_fwd").c_str()) + ";";     // data[17]: Show the FWD LED bar graph? (true/false)
+  output += config.getString(String("show_led_ref").c_str()) + ";";     // data[18]: Show the REF LED bar graph? (true/false)
+  output += config.getString(String("show_led_vswr").c_str());          // data[19]: Show the VSWR LED bar graph? (true/false)
   server.send(200, "text/plane", output);
 }
 
@@ -394,11 +390,11 @@ void handleCONFIG() {
   if (conf_textareas == "") {
     build_textareas();
   }
-  
+
   if (conf_config_table == "") {
     build_config_table();
   }
-  
+
   conf_content = "<!DOCTYPE HTML>\r\n<html>";
   conf_content += "<style>";
   conf_content += ".styled-table{border-collapse: collapse; margin: 25px 0; font-size: 0.9em; font-family: sans-serif; min-width: 400px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);}.styled-table thead tr{background-color: #009879; color: #ffffff; text-align: left;}.styled-table tbody tr{border-bottom: 1px solid #dddddd;}.styled-table tbody tr:nth-of-type(even){background-color: #f3f3f3;}.styled-table tbody tr:last-of-type{border-bottom: 2px solid #009879;}.styled-table tbody tr.active-row{font-weight: bold; color: #009879;}";
@@ -408,7 +404,7 @@ void handleCONFIG() {
   conf_content += "<h3>Band Selection</h1>";
   conf_content += "<form method='POST' action='/selectband'>";
   conf_content += "<label for='bands'></label><select class='button' onchange='this.form.submit()'' id='band' name='bands' size='1'>";
-  for (int i=0; i<sizeof band_list/sizeof band_list[0]; i++) {
+  for (int i = 0; i < sizeof band_list / sizeof band_list[0]; i++) {
     String selected = "";
     if (band_list[i] == band) {
       selected = "selected";
@@ -418,12 +414,13 @@ void handleCONFIG() {
   conf_content += "</select></form>";
   conf_content += "<p>";
   conf_content += "<h2>Translation Detector voltage /mV to RF-Power level /dBm</h3>";
-  conf_content +=  conf_textareas;
+  conf_content += conf_textareas;
   conf_content += "<p>";
   conf_content += "<h2>General Configuration Items</h3>";
   conf_content += "<p>";
   conf_content += conf_config_table;
   conf_content += "<p><form method='POST' action='/'><button class='button' value='back' name='back' type='submit'>Back to Dashboard</button></form>";
+  conf_content += "<p><p>Version " + version;
   conf_content += "</html>";
   server.send(200, "text/html", conf_content);
 }
@@ -442,20 +439,20 @@ void build_textareas() {
 
   String tbl = "<form action=\"/modtranslation\" method=\"POST\">";
   tbl += "<table class='styled-table'>";
-  tbl += "<thead><tr><td>"+band+" FWD (mV:dBm)</td><td>"+band+" REF (mV:dBm)</td></tr></thead>";
+  tbl += "<thead><tr><td>" + band + " FWD (mV:dBm)</td><td>" + band + " REF (mV:dBm)</td></tr></thead>";
   tbl += "<tr><td>";
   tbl += "<textarea id='fwd_textarea' name='fwd_textarea' rows='30' cols='25'>";
-  for (int i=0; i<sizeof fwd_array/sizeof fwd_array[0]; i++) {
-    if (fwd_array[i] != 0){
-      tbl += String(i) +":"+String(fwd_array[i],5) + "\n";
+  for (int i = 0; i < sizeof fwd_array / sizeof fwd_array[0]; i++) {
+    if (fwd_array[i] != 0) {
+      tbl += String(i) + ":" + String(fwd_array[i], 5) + "\n";
     }
   }
   tbl += "</textarea>";
   tbl += "</td><td>";
   tbl += "<textarea id='ref_textarea' name='ref_textarea' rows='30' cols='25'>";
-  for (int i=0; i<sizeof ref_array/sizeof ref_array[0]; i++) {
-    if (ref_array[i] != 0){
-      tbl += String(i) +":"+String(ref_array[i],5) + "\n";
+  for (int i = 0; i < sizeof ref_array / sizeof ref_array[0]; i++) {
+    if (ref_array[i] != 0) {
+      tbl += String(i) + ":" + String(ref_array[i], 5) + "\n";
     }
   }
   tbl += "</textarea>";
@@ -471,18 +468,24 @@ void build_config_table() {
   conf_config_table = "<form action=\"/modcfg\" method=\"POST\">";
   conf_config_table += "<table class='styled-table'>";
   conf_config_table += "<thead><tr><td>Key</td><td>Value</td></td><td>Action</td></tr></thead>";
-  for (int i=0; i<sizeof config_items/sizeof config_items[0]; i++) {
+  for (int i = 0; i < sizeof config_items / sizeof config_items[0]; i++) {
     String stored_val = config.getString(config_items[i].c_str(), "xxx");
-    if (stored_val == "xxx"){
+    if (stored_val == "xxx") {
       config.putString(config_items[i].c_str(), config_defaults[i]);
       stored_val = config.getString(config_items[i].c_str(), "");
     }
     conf_config_table += "<tr><td>";
     conf_config_table += config_items[i];
     conf_config_table += "</td><td>";
-    conf_config_table += String(stored_val);
+    //if (String(stored_val).equalsIgnoreCase("true")) {
+    //  conf_config_table += "<input type='checkbox' name=" + config_items[i] + " value=" + config_items[i]+ " checked>";
+    //} else if (String(stored_val).equalsIgnoreCase("false")) {
+    //  conf_config_table += "<input type='checkbox' name=" + config_items[i] + " value=" + config_items[i]+ ">";
+    //} else {
+      conf_config_table += String(stored_val);
+    //}
     conf_config_table += "</td><td>";
-    conf_config_table += "</td></tr>"; 
+    conf_config_table += "</td></tr>";
   }
   conf_config_table += "<tr><td><input name='conf_key' length=16></td><td><input name='conf_value' length=16></td><td><button class='button' type='submit'>edit</button></td></tr>";
   conf_config_table += "</table></form>";
@@ -495,21 +498,21 @@ void handleMODTRANS() {
   String fwd = server.arg("fwd_textarea") + "\n";
   String ref = server.arg("ref_textarea") + "\n";
   clear_fwd_ref_array();
-  save_string_to_array(fwd,fwd_array);
-  save_string_to_array(ref,ref_array);
+  save_string_to_array(fwd, fwd_array);
+  save_string_to_array(ref, ref_array);
 
   String fwd_of_array = "";
-  for (int i=0; i<sizeof fwd_array/sizeof fwd_array[0]; i++) {
-    if (fwd_array[i] != 0){
-      fwd_of_array += String(i) +":"+String(fwd_array[i],5) + "\n";
+  for (int i = 0; i < sizeof fwd_array / sizeof fwd_array[0]; i++) {
+    if (fwd_array[i] != 0) {
+      fwd_of_array += String(i) + ":" + String(fwd_array[i], 5) + "\n";
     }
   }
   writeFile(SPIFFS, String("/" + band + "fwd.txt").c_str(), fwd_of_array.c_str());
 
   String ref_of_array = "";
-  for (int i=0; i<sizeof ref_array/sizeof ref_array[0]; i++) {
-    if (ref_array[i] != 0){
-      ref_of_array += String(i) +":"+String(ref_array[i],5) + "\n";
+  for (int i = 0; i < sizeof ref_array / sizeof ref_array[0]; i++) {
+    if (ref_array[i] != 0) {
+      ref_of_array += String(i) + ":" + String(ref_array[i], 5) + "\n";
     }
   }
   writeFile(SPIFFS, String("/" + band + "ref.txt").c_str(), ref_of_array.c_str());
@@ -519,9 +522,8 @@ void handleMODTRANS() {
 }
 
 // resets all vlaues in the FWD and REF array
-void clear_fwd_ref_array(){
-  for (int x = 0; x < sizeof(fwd_array) / sizeof(fwd_array[0]); x++)
-  {
+void clear_fwd_ref_array() {
+  for (int x = 0; x < sizeof(fwd_array) / sizeof(fwd_array[0]); x++) {
     fwd_array[x] = 0;
     ref_array[x] = 0;
   }
@@ -530,33 +532,27 @@ void clear_fwd_ref_array(){
 // after the user edited the calibration table via the frontend,
 // this function takes the resulting string, detonates it and
 // writes all rows into an array
-void save_string_to_array(String table_data, double arr []){
-  int r=0,t=0;
-  for(int i=0;i<table_data.length();i++)
-  {
-    if(table_data[i] == '\n' || i==table_data.length())
-    {
-      if (i-r > 1)
-      {
-        String row = table_data.substring(r,i);
+void save_string_to_array(String table_data, double arr[]) {
+  int r = 0, t = 0;
+  for (int i = 0; i < table_data.length(); i++) {
+    if (table_data[i] == '\n' || i == table_data.length()) {
+      if (i - r > 1) {
+        String row = table_data.substring(r, i);
         t++;
-        int r2=0,t2=0;
-        for(int j=0;j<row.length();j++)
-        {
-          if(row[j] == ':' || row[j] == '\n')
-          {
-            if (j-r2 > 1)
-            {
-              int key = row.substring(r2,j).toInt();
-              double val = row.substring(j+1).toDouble();
+        int r2 = 0, t2 = 0;
+        for (int j = 0; j < row.length(); j++) {
+          if (row[j] == ':' || row[j] == '\n') {
+            if (j - r2 > 1) {
+              int key = row.substring(r2, j).toInt();
+              double val = row.substring(j + 1).toDouble();
               arr[key] = val;
               t2++;
             }
-            r2 = (j+1);
+            r2 = (j + 1);
           }
         }
       }
-      r = (i+1);
+      r = (i + 1);
     }
   }
 }
@@ -566,7 +562,7 @@ void save_string_to_array(String table_data, double arr []){
 void handleMODCFG() {
   String key = server.arg("conf_key");
   String value = server.arg("conf_value");
-  for (int i=0; i<sizeof config_items/sizeof config_items[0]; i++) {
+  for (int i = 0; i < sizeof config_items / sizeof config_items[0]; i++) {
     if (config_items[i] == key) {
       if (key != "" and value != "") {
         config.putString(config_items[i].c_str(), value);
@@ -595,8 +591,7 @@ void handleBAND() {
 }
 
 // initialization routine
-void setup()
-{
+void setup() {
   // DELETEME: Cleanup from old ver
   config.remove(String("show_fwd").c_str());
   config.remove(String("show_ref").c_str());
@@ -604,7 +599,8 @@ void setup()
 
   Serial.begin(115200);
 
-  while (!Serial);
+  while (!Serial)
+    ;
 
   // Using this if Serial debugging is not necessary or not using Serial port
   //while (!Serial && (millis() < 3000));
@@ -615,7 +611,7 @@ void setup()
 
   // To be called before ETH.begin()
   WT32_ETH01_onEvent();
-  
+
   ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER);
 
   // Static IP, leave without this line to get IP via DHCP
@@ -632,10 +628,10 @@ void setup()
   server.on("/modtranslation", handleMODTRANS);
 
 
-  if(!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED)){
+  if (!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED)) {
     Serial.println("SPIFFS Mount Failed");
     return;
-   }
+  }
 
   server.onNotFound(handleNotFound);
   server.begin();
@@ -647,7 +643,7 @@ void setup()
 
   config.begin("config", false);
   band = config.getString(String("selected_band").c_str());
-  if (band == ""){
+  if (band == "") {
     config.putString(String("selected_band").c_str(), default_band);
     band = default_band;
   }
@@ -655,7 +651,6 @@ void setup()
   build_textareas();
 }
 
-void loop()
-{
+void loop() {
   server.handleClient();
 }
