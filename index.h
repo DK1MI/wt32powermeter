@@ -341,7 +341,12 @@ function getDATA() {
       // display VSWR bar graph if enabled via backend configuration
       if (data[19] == "true") {
         document.getElementById("vswr_led_box").style.display = 'inline-block';
-        swr_vu_meter.setAttribute('data-val', strtoint(data[6]-1)); 
+        // if SWR value is invalid -> set to 0
+        if (data[6] == "-1" || data[6] == "inf" || data[15] == "1" || data[16] == "1") {
+          swr_vu_meter.setAttribute('data-val', 0);
+        } else {
+          swr_vu_meter.setAttribute('data-val', strtoint(data[6]-1)); 
+        }
       } else {
         document.getElementById("vswr_led_box").style.display = 'none';
       }
