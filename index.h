@@ -219,7 +219,9 @@ function formatNum(num, separator, fraction) {
 // converted to uW, mW or Watt
 function convert_power(val){
   let ret = "0";
-    if (val < 0.001){
+    if (val == 0) {
+      ret = "";
+    } else if (val < 0.001){
       ret = formatNum(val*1000000,'','.') + " uW";
     } else if (val < 1) {
       ret = formatNum(val*1000,'','.') + " mW";
@@ -234,6 +236,8 @@ function check_dbm(val){
   let ret = "0";
   if (isNaN(val)) {
     ret = "-- dBm";
+  } else if (val == "") {
+    ret = "";
   } else {
     ret = val + " dBm";
   }
