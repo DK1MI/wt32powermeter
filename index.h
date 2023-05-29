@@ -187,7 +187,7 @@ function load_vu_meters() {
   vumeter(swr_vu_meter, {
     "boxCount": 10,
     "boxGapFraction": 0.25,
-    "max": 2,
+    "max": strtoint((data[14]-1)*100),
   }); 
 }
 
@@ -349,7 +349,7 @@ function getDATA() {
         if (data[6] == "-1" || data[6] == "inf" || data[15] == "1" || data[16] == "1") {
           swr_vu_meter.setAttribute('data-val', 0);
         } else {
-          swr_vu_meter.setAttribute('data-val', strtoint(data[6]-1)); 
+          swr_vu_meter.setAttribute('data-val', strtoint((data[6]-1)*100)); 
         }
       } else {
         document.getElementById("vswr_led_box").style.display = 'none';
