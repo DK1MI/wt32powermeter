@@ -21,11 +21,19 @@ const char DB_STYLESHEET[] PROGMEM = R"=====(
   display: inline-block;
 }
 
-.innerbox{
+.innerbox_left{
+  float:left;
+  text-align: center;
+  vertical-align: middle;
+  padding: 50px 0;
+  margin: 5px;
+  height: 90%;
+}
+
+.innerbox_right{
   padding: 5px;
-  margin-left: auto;
-  margin-right: auto;
-  display: inline-block;
+  float:right;
+  width: 30%;
   text-align: center;
   vertical-align: middle;
 }
