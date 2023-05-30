@@ -266,6 +266,7 @@ function getDATA() {
       document.getElementById("max_led_pwr_fwd").innerHTML = data[12]; // sets the FWD LED bar max value
       document.getElementById("max_led_pwr_ref").innerHTML = data[13]; // sets the REF LED bar max value
       document.getElementById("max_led_vswr").innerHTML = data[14]; // sets the VSWR LED bar max value
+      document.getElementById("version").innerHTML = data[20]; // sets the version in the footer
       // displays "--" as VSWR if the value is too high or number is invalid
       if (data[6] == "-1" || data[6] == "inf" || data[15] == "1" || data[16] == "1") {
         document.getElementById("VSWRValue").innerHTML = "--";
