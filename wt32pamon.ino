@@ -20,6 +20,9 @@
 
 
 #include <WebServer_WT32_ETH01.h>
+#include "javascript.h"
+#include "dashboard_css.h"
+#include "config_css.h"
 #include "index.h"  // Main Web page header file
 #include <Preferences.h>
 #include "FS.h"
@@ -279,8 +282,10 @@ void read_directional_couplers() {
 
 // delivers the dashboard page in "index.h"
 void handleRoot() {
-  String s = MAIN_page;
-  server.send(200, "text/html", s);
+  String html = MAIN_page;
+  String css = DB_STYLESHEET;
+  String js  = JAVASCRIPT;
+  server.send(200, "text/html", css + js + html);
 }
 
 
@@ -398,15 +403,12 @@ void handleCONFIG() {
     build_config_table();
   }
 
-  conf_content = "<!DOCTYPE HTML>\r\n<html>";
-  conf_content += "<style>";
-  conf_content += ".styled-table{border-collapse: collapse; margin: 25px 0; font-size: 0.9em; font-family: sans-serif; min-width: 400px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);}.styled-table thead tr{background-color: #009879; color: #ffffff; text-align: left;}.styled-table tbody tr{border-bottom: 1px solid #dddddd;}.styled-table tbody tr:nth-of-type(even){background-color: #f3f3f3;}.styled-table tbody tr:last-of-type{border-bottom: 2px solid #009879;}.styled-table tbody tr.active-row{font-weight: bold; color: #009879;}";
-  conf_content += ".button{background-color: #009879; border: none; color: white; padding: 5px 5px; text-align: center; text-decoration: none; display: inline-block; margin: 4px 2px; cursor: pointer; border-radius: 8px;}";
-  conf_content += "</style>";
+  String css = CFG_STYLESHEET;
+  conf_content = css;
   conf_content += "<h1>Configuration</h1>";
   conf_content += "<h3>Band Selection</h1>";
   conf_content += "<form method='POST' action='/selectband'>";
-  conf_content += "<label for='bands'></label><select class='button' onchange='this.form.submit()'' id='band' name='bands' size='1'>";
+  conf_content += "<label for='bands'></label><select class='backend_button' onchange='this.form.submit()'' id='band' name='bands' size='1'>";
   for (int i = 0; i < sizeof band_list / sizeof band_list[0]; i++) {
     String selected = "";
     if (band_list[i] == band) {
@@ -422,7 +424,7 @@ void handleCONFIG() {
   conf_content += "<h2>General Configuration Items</h3>";
   conf_content += "<p>";
   conf_content += conf_config_table;
-  conf_content += "<p><form method='POST' action='/'><button class='button' value='back' name='back' type='submit'>Back to Dashboard</button></form>";
+  conf_content += "<p><form method='POST' action='/'><button class='backend_button' value='back' name='back' type='submit'>Back to Dashboard</button></form>";
   conf_content += "<p><p>Version " + version;
   conf_content += "</html>";
   server.send(200, "text/html", conf_content);
@@ -460,7 +462,7 @@ void build_textareas() {
   }
   tbl += "</textarea>";
   tbl += "</td></tr></table>";
-  tbl += "<p><button class='button' value='save' name='save' type='submit'>save</button>";
+  tbl += "<p><button class='backend_button' value='save' name='save' type='submit'>save</button>";
   tbl += "</form>";
   conf_textareas = tbl;
 }
@@ -492,7 +494,7 @@ void build_config_table() {
       conf_config_table += "</td></tr>";
     }
   }
-  conf_config_table += "<tr><td></td><td><button class='button' type='submit'>Save</button></td></tr>";
+  conf_config_table += "<tr><td></td><td><button class='backend_button' type='submit'>Save</button></td></tr>";
   conf_config_table += "</table></form>";
   handleCONFIG();
 }
