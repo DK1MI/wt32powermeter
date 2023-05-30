@@ -29,7 +29,7 @@ const char MAIN_page[] PROGMEM = R"=====(
     <div id="fwd_led_box" class="innerbox">
       <span id="max_led_pwr_fwd">0</span> W
       <section class="main">
-        <canvas id="fwd_vu_meter" width="40" height="150" data-val="0">No canvas</canvas>
+        <canvas id="fwd_vu_meter" width="30" height="150" data-val="0">No canvas</canvas>
       </section>
       0 W
     </div>
@@ -42,7 +42,7 @@ const char MAIN_page[] PROGMEM = R"=====(
     <div id="ref_led_box" class="innerbox">
       <span id="max_led_pwr_ref">0</span> W
       <section class="main">
-        <canvas id="ref_vu_meter" width="40" height="150" data-val="0">No canvas</canvas>
+        <canvas id="ref_vu_meter" width="30" height="150" data-val="0">No canvas</canvas>
       </section>
       0 W
     </div>
@@ -57,7 +57,7 @@ const char MAIN_page[] PROGMEM = R"=====(
     <div id="vswr_led_box" class="innerbox">
       <span id="max_led_vswr">0</span>
       <section class="main">
-        <canvas id="swr_vu_meter" width="40" height="150" data-val="0">No canvas</canvas>
+        <canvas id="swr_vu_meter" width="30" height="150" data-val="0">No canvas</canvas>
       </section>
       1
     </div>
