@@ -25,7 +25,7 @@
 #include "FS.h"
 #include "SPIFFS.h"
 
-String version = "0.9";
+String version = "0.9.1";
 
 Preferences config;
 Preferences global_config;
