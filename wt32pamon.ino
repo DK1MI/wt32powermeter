@@ -28,7 +28,7 @@
 #include "FS.h"
 #include "SPIFFS.h"
 
-String version = "0.9.2";
+String version = "0.9.3";
 
 Preferences config;
 Preferences global_config;
@@ -388,7 +388,8 @@ void handleDATA() {
   output += String(ref_oob) + ";";                                      // data[16]: Is the REF voltage out of bounds? (true/false)
   output += config.getString(String("b_show_led_fwd").c_str()) + ";";   // data[17]: Show the FWD LED bar graph? (true/false)
   output += config.getString(String("b_show_led_ref").c_str()) + ";";   // data[18]: Show the REF LED bar graph? (true/false)
-  output += config.getString(String("b_show_led_vswr").c_str());        // data[19]: Show the VSWR LED bar graph? (true/false)
+  output += config.getString(String("b_show_led_vswr").c_str()) + ";";  // data[19]: Show the VSWR LED bar graph? (true/false)
+  output += version;                                                    // data[20]: program version
   server.send(200, "text/plane", output);
 }
 
@@ -431,7 +432,7 @@ void handleCONFIG() {
   conf_content += conf_config_table;
   conf_content += "</div>";
   conf_content += "<div class='footerbox'>";
-  conf_content += "<form method='POST' action='/'><button class='linkbutton' value='back' name='back' type='submit'>Back to Dashboard</button> - Version: " + version+ " </form>";
+  conf_content += "<form method='POST' action='/'><button class='linkbutton' value='back' name='back' type='submit'>Back to Dashboard</button> - Version: " + version + " </form>";
   conf_content += "</div>";
   conf_content += "</div>";
   conf_content += "</html>";
