@@ -2,21 +2,22 @@ const char MAIN_page[] PROGMEM = R"=====(
 <!DOCTYPE html>
 <html>
 <style>
-.row {
-  width: 100%;
-  margin: 0 auto;
+
+.grid-container {
+  display: grid;
+  grid-template-columns: 260px 260px 260px;
+  grid-template-rows: 50px 30px auto;
+  grid-column-gap: 5px;
+  grid-row-gap: 5px;
 }
+
 .box{
-     max-width: 500px;
-     min-width: 330px;
-     min-height: 330px;
      background: #009879;
      padding: 30px;
      box-sizing: border-box;
      vertical-align: top;
      color: #FFF;
-     margin:20px;
-     box-shadow: 0px 2px 18px -4px rgba(0,0,0,0.75);
+     margin:0px;
      display: inline-block;
 }
 .innerbox{
@@ -27,16 +28,95 @@ const char MAIN_page[] PROGMEM = R"=====(
      text-align: center;
      vertical-align: middle;
 }
-.redbox{
-  background: #FFAA79;
+
+.fwdtitle {
+  grid-column: 1;
+  grid-row: 2;
 }
 
-.whitebox{
+.reftitle {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.vswrtitle {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.fwdcontent {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.refcontent {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.vswrcontent {
+  grid-column: 3;
+  grid-row: 3;
+}
+
+.titlebox  {
+  grid-column: 1 / span 2;
+  grid-row: 1;
+}
+
+.bandbox  {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.subtitlebox {
   background: #FFFFFF;
   color: #009879;
   border-style: solid;
   border-color: #009879;
+  font-family: verdana, sans-serif;
+  font-size: 16px;
+  color: #009879;
+  font-style: normal;
+  font-weight: bold;
+  font-variant: normal;
+  text-align: center;
+  letter-spacing: 0px;
+  line-height: 20px;
 }
+
+.maintitlebox {
+  background: #FFFFFF;
+  color: #009879;
+  border-style: solid;
+  border-color: #009879;
+  font-family: verdana, sans-serif;
+  font-size: 22px;
+  color: #009879;
+  font-style: normal;
+  font-weight: bold;
+  font-variant: normal;
+  text-align: center;
+  letter-spacing: 0px;
+  line-height: 50px;
+}
+
+.contentbox_text {
+  font-family: verdana, sans-serif;
+  font-size: 14px;
+  color: #FFFFFF;
+  font-style: normal;
+  font-weight: bold;
+  font-variant: normal;
+  text-align: center;
+  letter-spacing: 0px;
+  line-height: 30px;
+}
+
+.redbox{
+  background: #FFAA79;
+}
+
 
 .button{background-color: #009879; border: none; color: white; padding: 5px 5px; text-align: center; text-decoration: none; display: inline-block; margin: 4px 2px; cursor: pointer; border-radius: 8px;}
 
@@ -366,58 +446,69 @@ function getDATA() {
 
 </script>
 <body>
+<div class="grid-container">
 
-<div class="row">
+  <div id="title_box" class="titlebox maintitlebox">
+    <span id="AntennaName"></span>
+  </div>
 
-<div id="band_box" class="box whitebox">
-  <h1><span id="AntennaName"></span></h1>
-  <h1>Band</h1>
-  <h2><span id="BANDValue">0</span></h2>
+  <div id="title_box" class="bandbox maintitlebox">
+    Band: <span id="BANDValue">0</span>
+  </div>
+
+  <div class="fwd_title subtitlebox">
+    FWD Power
+  </div>
+
+  <div class="ref_title subtitlebox">
+    REF Power
+  </div>
+
+  <div class="vswr_title subtitlebox">
+    VSWR
+  </div>
+
+  <div id="fwd_box" class="box fwdcontent contentbox_text">
+    <div class="innerbox">
+      <p><span id="FWDWatt">0</span> </br><span id="FWDdBm">0</span> </br><span id="FWDVoltage">0</span>
+    </div>
+    <div id="fwd_led_box" class="innerbox">
+      <span id="max_led_pwr_fwd">0</span> W
+      <section class="main">
+        <canvas id="fwd_vu_meter" width="40" height="150" data-val="0">No canvas</canvas>
+      </section>
+      0 W
+    </div>
+  </div>
+
+  <div id="ref_box" class="box refcontent contentbox_text">
+    <div class="innerbox">
+      <p><span id="REFWatt">0</span> </br><span id="REFdBm">0</span> </br><span id="REFVoltage">0</span>
+    </div>
+    <div id="ref_led_box" class="innerbox">
+      <span id="max_led_pwr_ref">0</span> W
+      <section class="main">
+        <canvas id="ref_vu_meter" width="40" height="150" data-val="0">No canvas</canvas>
+      </section>
+      0 W
+    </div>
+  </div>
+
+
+  <div id="vswr_box" class="box vswrcontent contentbox_text">
+    <div class="innerbox">
+      <p><span id="VSWRValue">0</span>
+      <p>RL: <span id="RLValue">0</span> dB
+    </div>
+    <div id="vswr_led_box" class="innerbox">
+      <span id="max_led_vswr">0</span>
+      <section class="main">
+        <canvas id="swr_vu_meter" width="40" height="150" data-val="0">No canvas</canvas>
+      </section>
+      1
+    </div>
+  </div>
 </div>
-
-<div id="fwd_box" class="box">
-  <div class="innerbox">
-    <h1>FWD Power</h1>
-    <h2><span id="FWDWatt">0</span> </br><span id="FWDdBm">0</span> </br><span id="FWDVoltage">0</span></h2>
-  </div>
-  <div id="fwd_led_box" class="innerbox">
-    <span id="max_led_pwr_fwd">0</span> W
-    <section class="main">
-      <canvas id="fwd_vu_meter" width="60" height="200" data-val="0">No canvas</canvas>
-    </section>
-    0 W
-  </div>
-</div>
-
-<div id="ref_box" class="box">
-  <div class="innerbox">
-    <h1>REF Power</h1>
-    <h2><span id="REFWatt">0</span> </br><span id="REFdBm">0</span> </br><span id="REFVoltage">0</span></h2>
-  </div>
-  <div id="ref_led_box" class="innerbox">
-    <span id="max_led_pwr_ref">0</span> W
-    <section class="main">
-      <canvas id="ref_vu_meter" width="60" height="200" data-val="0">No canvas</canvas>
-    </section>
-    0 W
-  </div>
-</div>
-
-<div id="vswr_box" class="box">
-  <div class="innerbox">
-    <h1>VSWR</h1>
-    <h2><span id="VSWRValue">0</span></h2>
-    <h2>RL: <span id="RLValue">0</span> dB</h2>
-  </div>
-  <div id="vswr_led_box" class="innerbox">
-    <span id="max_led_vswr">0</span>
-    <section class="main">
-      <canvas id="swr_vu_meter" width="60" height="200" data-val="0">No canvas</canvas>
-    </section>
-    1
-  </div>
-</div>
-
 <form method='post' action='config'><button class='button' value='config' name='config' type='submit'>Configuration</button></form>
 
 </body>
