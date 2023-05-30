@@ -4,8 +4,8 @@
   For Ethernet shields using WT32_ETH01 (ESP32 + LAN8720)
   Uses WebServer_WT32_ETH01, a library for the Ethernet LAN8720 in WT32_ETH01 to run WebServer
 
-  Michael Clemens, DK1MI
-  Licensed under MIT license
+  Author: Michael Clemens, DK1MI
+  Licensed under GPLv3 license (see LICENSE.md)
 
   VU meter code was taken from https://github.com/tomnomnom/vumeter, credits go to Tom Hudson (https://github.com/tomnomnom)
   
@@ -28,7 +28,7 @@
 #include "FS.h"
 #include "SPIFFS.h"
 
-String version = "0.9.1";
+String version = "0.9.2";
 
 Preferences config;
 Preferences global_config;
