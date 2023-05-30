@@ -405,10 +405,13 @@ void handleCONFIG() {
 
   String css = CFG_STYLESHEET;
   conf_content = css;
-  conf_content += "<h1>Configuration</h1>";
-  conf_content += "<h3>Band Selection</h1>";
+
+  conf_content += "<div class='grid-container'>";
+  conf_content += "<div id='title_box' class='titlebox maintitlebox'>";
+  conf_content += "Configuration</div>";
+  conf_content += "<div id='title_box' class='bandbox maintitlebox'>";
   conf_content += "<form method='POST' action='/selectband'>";
-  conf_content += "<label for='bands'></label><select class='backend_button' onchange='this.form.submit()'' id='band' name='bands' size='1'>";
+  conf_content += "Band: <label for='bands'></label><select class='backend_button' onchange='this.form.submit()'' id='band' name='bands' size='1'>";
   for (int i = 0; i < sizeof band_list / sizeof band_list[0]; i++) {
     String selected = "";
     if (band_list[i] == band) {
@@ -417,15 +420,20 @@ void handleCONFIG() {
     conf_content += "<option value='" + band_list[i] + "' " + selected + " >" + band_list[i] + "</option>";
   }
   conf_content += "</select></form>";
-  conf_content += "<p>";
-  conf_content += "<h2>Translation Detector voltage /mV to RF-Power level /dBm</h3>";
+  conf_content += "</div>";
+  conf_content += "<div class='subtitle1 subtitlebox'>Translation Detector Voltage /mV to RF-Power level /dBm</div>";
+
+  conf_content += "<div class='translationitems contentbox'>";
   conf_content += conf_textareas;
-  conf_content += "<p>";
-  conf_content += "<h2>General Configuration Items</h3>";
-  conf_content += "<p>";
+  conf_content += "</div>";
+  conf_content += "<div class='subtitle2 subtitlebox'>General Configuration Items</div>";
+  conf_content += "<div class='configitems contentbox'>";
   conf_content += conf_config_table;
-  conf_content += "<p><form method='POST' action='/'><button class='backend_button' value='back' name='back' type='submit'>Back to Dashboard</button></form>";
-  conf_content += "<p><p>Version " + version;
+  conf_content += "</div>";
+  conf_content += "<div class='footerbox'>";
+  conf_content += "<form method='POST' action='/'><button class='linkbutton' value='back' name='back' type='submit'>Back to Dashboard</button> - Version: " + version+ " </form>";
+  conf_content += "</div>";
+  conf_content += "</div>";
   conf_content += "</html>";
   server.send(200, "text/html", conf_content);
 }
@@ -446,7 +454,7 @@ void build_textareas() {
   tbl += "<table class='styled-table'>";
   tbl += "<thead><tr><td>" + band + " FWD (mV:dBm)</td><td>" + band + " REF (mV:dBm)</td></tr></thead>";
   tbl += "<tr><td>";
-  tbl += "<textarea id='fwd_textarea' name='fwd_textarea' rows='30' cols='25'>";
+  tbl += "<textarea id='fwd_textarea' name='fwd_textarea' rows='22'>";
   for (int i = 0; i < sizeof fwd_array / sizeof fwd_array[0]; i++) {
     if (fwd_array[i] != 0) {
       tbl += String(i) + ":" + String(fwd_array[i], 5) + "\n";
@@ -454,7 +462,7 @@ void build_textareas() {
   }
   tbl += "</textarea>";
   tbl += "</td><td>";
-  tbl += "<textarea id='ref_textarea' name='ref_textarea' rows='30' cols='25'>";
+  tbl += "<textarea id='ref_textarea' name='ref_textarea' rows='22'>";
   for (int i = 0; i < sizeof ref_array / sizeof ref_array[0]; i++) {
     if (ref_array[i] != 0) {
       tbl += String(i) + ":" + String(ref_array[i], 5) + "\n";
@@ -462,7 +470,7 @@ void build_textareas() {
   }
   tbl += "</textarea>";
   tbl += "</td></tr></table>";
-  tbl += "<p><button class='backend_button' value='save' name='save' type='submit'>save</button>";
+  tbl += "<button class='backend_button' value='save' name='save' type='submit'>Save Calibration Data</button>";
   tbl += "</form>";
   conf_textareas = tbl;
 }
@@ -472,7 +480,7 @@ void build_textareas() {
 void build_config_table() {
   conf_config_table = "<form action=\"/modcfg\" method=\"POST\">";
   conf_config_table += "<table class='styled-table'>";
-  conf_config_table += "<thead><tr><td>Key</td><td>Value</td></td></tr></thead>";
+  //conf_config_table += "<thead><tr><td>Key</td><td>Value</td></td></tr></thead>";
   for (int i = 0; i < sizeof band_config_items / sizeof band_config_items[0]; i++) {
     if (!band_config_items[i].startsWith("x_")) {
       String stored_val = config.getString(band_config_items[i].c_str(), "xxx");
@@ -494,8 +502,8 @@ void build_config_table() {
       conf_config_table += "</td></tr>";
     }
   }
-  conf_config_table += "<tr><td></td><td><button class='backend_button' type='submit'>Save</button></td></tr>";
-  conf_config_table += "</table></form>";
+  //conf_config_table += "<tr><td></td><td><button class='backend_button' type='submit'>Save</button></td></tr>";
+  conf_config_table += "</table><button class='backend_button' value='save' name='save' type='submit'>Save Configuration</button></form>";
   handleCONFIG();
 }
 
