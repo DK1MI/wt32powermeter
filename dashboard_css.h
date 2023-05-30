@@ -5,7 +5,7 @@ const char DB_STYLESHEET[] PROGMEM = R"=====(
 
 .grid-container {
   display: grid;
-  grid-template-columns: 260px 260px 260px;
+  grid-template-columns: 180px 180px 180px;
   grid-template-rows: 50px 30px auto 30px;
   grid-column-gap: 5px;
   grid-row-gap: 5px;
@@ -13,15 +13,16 @@ const char DB_STYLESHEET[] PROGMEM = R"=====(
 
 .box{
   background: #009879;
-  padding: 30px;
+  padding: 5px;
   box-sizing: border-box;
   vertical-align: top;
   color: #FFF;
   margin:0px;
   display: inline-block;
 }
+
 .innerbox{
-  padding: 10px;
+  padding: 5px;
   margin-left: auto;
   margin-right: auto;
   display: inline-block;
@@ -109,7 +110,7 @@ const char DB_STYLESHEET[] PROGMEM = R"=====(
   border-style: solid;
   border-color: #009879;
   font-family: verdana, sans-serif;
-  font-size: 22px;
+  font-size: 18px;
   color: #009879;
   font-style: normal;
   font-weight: bold;
