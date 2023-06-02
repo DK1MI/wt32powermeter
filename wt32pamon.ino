@@ -28,14 +28,14 @@
 #include "FS.h"
 #include "SPIFFS.h"
 
-String version = "0.9.3";
+String version = "0.9.4";
 
 Preferences config;
 Preferences global_config;
 
-String band_config_items[] = { "b_show_mV", "b_show_dBm", "b_show_watt", "s_vswr_thresh", "b_vswr_beep", "s_ant_name", "s_max_led_pwr_f", "s_max_led_pwr_r", "s_max_led_vswr", "b_show_led_fwd", "b_show_led_ref", "b_show_led_vswr" };
-String band_config_defaults[] = { "true", "true", "true", "2", "true", " ", "100", "100", "3", "true", "true", "true" };
-String band_config_nice_names[] = {"Show voltage in mV (yes/no)", "Show power level in dBm (yes/no)", "Show Power in Watt (yes/no)", "VSWR Threshold that triggers a warning (e.g. 3)", "Beep if VSWR threshold is exceeded (yes/no)", "Name of the antenna", "Max. FWD Power displayed by LED bar graph in W (e.g. 100)", "Max. REF Power displayed by LED bar graph in W (e.g. 100)", "Max. VSWR displayed by LED bar graph (e.g. 3)", "Show LED graph for FWD power (yes/no)", "Show LED graph for REF power (yes/no)", "Show LED graph for VSWR (yes/no)" }; 
+String band_config_items[] = { "b_show_mV", "b_show_dBm", "b_show_watt", "s_vswr_thresh", "b_vswr_beep", "s_ant_name", "s_max_led_pwr_f", "s_max_led_pwr_r", "s_max_led_vswr", "b_show_led_fwd", "b_show_led_ref", "b_show_led_vswr", "s_cable_loss" };
+String band_config_defaults[] = { "true", "true", "true", "2", "true", " ", "100", "100", "3", "true", "true", "true", "0" };
+String band_config_nice_names[] = { "Show voltage in mV (yes/no)", "Show power level in dBm (yes/no)", "Show power in Watt (yes/no)", "VSWR threshold that triggers a warning (e.g. 3)", "Beep if VSWR threshold is exceeded (yes/no)", "Name of the antenna", "Max. FWD power displayed by LED bar graph in W (e.g. 100)", "Max. REF power displayed by LED bar graph in W (e.g. 100)", "Max. VSWR displayed by LED bar graph (e.g. 3)", "Show LED graph for FWD power (yes/no)", "Show LED graph for REF power (yes/no)", "Show LED graph for VSWR (yes/no)","Cable loss in db (e.g. 3)" };
 
 double fwd_array[3300] = {};
 double ref_array[3300] = {};
@@ -186,8 +186,8 @@ double millivolt_to_dbm(int mv, bool fwd) {
       }
     }
   }
-
-
+  // checks if the voltage values are opposite to the dBm values or
+  // if both, voltage and dBm values are ascending
   if (ascending) {
     for (int i = 0; i < 3300; i++) {
       if (fwd) {
@@ -275,6 +275,13 @@ void read_directional_couplers() {
   fwd_dbm = millivolt_to_dbm(voltage_fwd, true);
   ref_dbm = millivolt_to_dbm(voltage_ref, false);
 
+  // add cable loss to FWD dBm, substract cable loss from REF dBm
+  double cable_loss = 0;
+  cable_loss = config.getString(String("s_cable_loss").c_str()).toDouble();
+  //Serial.println("cable loss: " + String(cable_loss));
+  fwd_dbm = fwd_dbm - cable_loss;
+  ref_dbm = ref_dbm + cable_loss;
+
   // calculate watt from dBm
   fwd_watt = dbm_to_watt(fwd_dbm);
   ref_watt = dbm_to_watt(ref_dbm);
@@ -284,7 +291,7 @@ void read_directional_couplers() {
 void handleRoot() {
   String html = MAIN_page;
   String css = DB_STYLESHEET;
-  String js  = JAVASCRIPT;
+  String js = JAVASCRIPT;
   server.send(200, "text/html", css + js + html);
 }
 
@@ -304,7 +311,6 @@ void handleNotFound() {
   for (uint8_t i = 0; i < server.args(); i++) {
     message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
   }
-
   server.send(404, F("text/plain"), message);
 }
 
@@ -412,7 +418,7 @@ void handleCONFIG() {
   conf_content += "Configuration</div>";
   conf_content += "<div id='title_box' class='bandbox maintitlebox'>";
   conf_content += "<form method='POST' action='/selectband'>";
-  conf_content += "Band: <label for='bands'></label><select class='backend_button' onchange='this.form.submit()'' id='band' name='bands' size='1'>";
+  conf_content += "Band: <label for='bands'></label><select class='button' onchange='this.form.submit()'' id='band' name='bands' size='1'>";
   for (int i = 0; i < sizeof band_list / sizeof band_list[0]; i++) {
     String selected = "";
     if (band_list[i] == band) {
@@ -422,7 +428,7 @@ void handleCONFIG() {
   }
   conf_content += "</select></form>";
   conf_content += "</div>";
-  conf_content += "<div class='subtitle1 subtitlebox'>Translation Detector Voltage /mV to RF-Power level /dBm</div>";
+  conf_content += "<div class='subtitle1 subtitlebox'>Translation Detector Voltage /mV to RF-Power Level /dBm</div>";
 
   conf_content += "<div class='translationitems contentbox'>";
   conf_content += conf_textareas;
@@ -451,7 +457,7 @@ void build_textareas() {
   save_string_to_array(fwd, fwd_array);
   save_string_to_array(ref, ref_array);
 
-  String tbl = "<form action=\"/modtranslation\" method=\"POST\">";
+  String tbl = "<form action=\"/modcal\" method=\"POST\">";
   tbl += "<table class='styled-table'>";
   tbl += "<thead><tr><td>" + band + " FWD (mV:dBm)</td><td>" + band + " REF (mV:dBm)</td></tr></thead>";
   tbl += "<tr><td>";
@@ -471,7 +477,7 @@ void build_textareas() {
   }
   tbl += "</textarea>";
   tbl += "</td></tr></table>";
-  tbl += "<button class='backend_button' value='save' name='save' type='submit'>Save Calibration Data</button>";
+  tbl += "<button class='button' value='save' name='save' type='submit'>Save Calibration Data</button>";
   tbl += "</form>";
   conf_textareas = tbl;
 }
@@ -492,7 +498,7 @@ void build_config_table() {
       conf_config_table += "<tr><td>";
       conf_config_table += band_config_nice_names[i];
       conf_config_table += "</td><td>";
-      
+
       if (String(stored_val).equalsIgnoreCase("true")) {
         conf_config_table += "<input type='checkbox' name='" + band_config_items[i] + "' id='" + band_config_items[i] + "' value='true' checked>";
       } else if (String(stored_val).equalsIgnoreCase("false")) {
@@ -503,14 +509,13 @@ void build_config_table() {
       conf_config_table += "</td></tr>";
     }
   }
-  //conf_config_table += "<tr><td></td><td><button class='backend_button' type='submit'>Save</button></td></tr>";
-  conf_config_table += "</table><button class='backend_button' value='save' name='save' type='submit'>Save Configuration</button></form>";
+  conf_config_table += "</table><button class='button' value='save' name='save' type='submit'>Save Configuration</button></form>";
   handleCONFIG();
 }
 
 // Handle request from the config page to change or add values
 // to the XXXX value table for the selected band
-void handleMODTRANS() {
+void handleMODCAL() {
   String fwd = server.arg("fwd_textarea") + "\n";
   String ref = server.arg("ref_textarea") + "\n";
   clear_fwd_ref_array();
@@ -577,20 +582,20 @@ void save_string_to_array(String table_data, double arr[]) {
 // to the general config value table for the selected band
 void handleMODCFG() {
   for (int i = 0; i < sizeof band_config_items / sizeof band_config_items[0]; i++) {
-    if (!server.hasArg(band_config_items[i]) and band_config_items[i].startsWith("b_")){
+    if (!server.hasArg(band_config_items[i]) and band_config_items[i].startsWith("b_")) {
       config.putString(band_config_items[i].c_str(), "false");
-    } else if (server.hasArg(band_config_items[i]) and band_config_items[i].startsWith("b_")){
+    } else if (server.hasArg(band_config_items[i]) and band_config_items[i].startsWith("b_")) {
       config.putString(band_config_items[i].c_str(), "true");
     } else {
       config.putString(band_config_items[i].c_str(), server.arg(band_config_items[i]));
-    }   
+    }
   }
   conf_config_table = "";
   build_config_table();
 }
 
 // changes the band according to the user's selection
-// regenerates the translation tables and fills them
+// regenerates the calibration tables and fills them
 // with the values assigned to the respective band
 // invoked by selecting a band from the select box of the config page
 void handleBAND() {
@@ -614,8 +619,8 @@ void setup() {
 
   Serial.begin(115200);
 
-  while (!Serial)
-    ;
+  //while (!Serial)
+  //  ;
 
   // Using this if Serial debugging is not necessary or not using Serial port
   //while (!Serial && (millis() < 3000));
@@ -640,7 +645,7 @@ void setup() {
   server.on("/config", handleCONFIG);
   server.on("/modcfg", handleMODCFG);
   server.on("/selectband", handleBAND);
-  server.on("/modtranslation", handleMODTRANS);
+  server.on("/modcal", handleMODCAL);
 
 
   if (!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED)) {
