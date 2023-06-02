@@ -3,10 +3,21 @@ const char CFG_STYLESHEET[] PROGMEM = R"=====(
 <html>
 <style>
 
+body {
+  background: #FFFFFF;
+  font-family: verdana, sans-serif;
+  color: #009879;
+  font-style: normal;
+  font-weight: bold;
+  font-variant: normal;
+  text-align: center;
+  border-color: #009879;
+  letter-spacing: 0px;
+}
+
 .grid-container {
   display: grid;
   grid-template-columns: 320px 320px;
-  grid-template-rows: 50px 30px auto 30px auto 30px;
   grid-column-gap: 5px;
   grid-row-gap: 5px;
 }
@@ -17,53 +28,22 @@ const char CFG_STYLESHEET[] PROGMEM = R"=====(
 }
 
 .maintitlebox {
-  background: #FFFFFF;
-  color: #009879;
   border-style: solid;
-  border-color: #009879;
-  font-family: verdana, sans-serif;
-  font-style: normal;
-  font-weight: bold;
-  font-variant: normal;
-  font-size: 22px;
-  color: #009879;
-  text-align: center;
-  letter-spacing: 0px;
-  line-height: 50px;
+  font-size: 20px;
+  line-height: 40px;
 }
 
 .subtitlebox {
-  background: #FFFFFF;
-  color: #009879;
   border-style: solid;
-  border-color: #009879;
-  font-family: verdana, sans-serif;
   font-size: 16px;
-  color: #009879;
-  font-style: normal;
-  font-weight: bold;
-  font-variant: normal;
-  text-align: center;
-  letter-spacing: 0px;
-  line-height: 20px;
 }
 
 .contentbox {
-  background: #FFFFFF;
-  color: #009879;
   border-style: solid;
-  border-color: #009879;
-  font-family: verdana, sans-serif;
-  font-size: 16px;
-  color: #009879;
-  font-style: normal;
-  font-weight: bold;
-  font-variant: normal;
-  text-align: center;
-  letter-spacing: 0px;
   line-height: 20px;
   padding: 0px;
   margin: 0px;
+  font-size: 16px;
 }
 
 .subtitle1 {
@@ -89,19 +69,9 @@ const char CFG_STYLESHEET[] PROGMEM = R"=====(
 .footerbox  {
   grid-column: 1 / span 2;
   grid-row: 6;
-  background: #FFFFFF;
-  color: #009879;
   border-style: solid;
-  border-color: #009879;
-  font-family: verdana, sans-serif;
-  font-size: 12px;
-  color: #009879;
-  font-style: normal;
-  font-weight: bold;
-  font-variant: normal;
-  text-align: center;
-  letter-spacing: 0px;
   line-height: 20px;
+  font-size: 12px;
 }
 
 textarea {
@@ -112,16 +82,13 @@ textarea {
   background: none!important;
   border: none;
   padding: 0!important;
-  /*optional*/
   font-family: verdana, sans-serif;
   font-size: 12px;
   font-weight: bold;
-  /*input has OS specific font-family*/
   color: #009879;
   text-decoration: underline;
   cursor: pointer;
 }
-
 
 .styled-table{
   border-collapse: collapse;
@@ -154,7 +121,7 @@ textarea {
   color: #009879;
 }
 
-.backend_button{
+.button{
   background-color: #009879;
   border: none;
   color: white;
