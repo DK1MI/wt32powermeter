@@ -3,10 +3,21 @@ const char DB_STYLESHEET[] PROGMEM = R"=====(
 <html>
 <style>
 
+body {
+  background: #FFFFFF;
+  font-family: verdana, sans-serif;
+  font-size: 12px;
+  color: #009879;
+  font-style: normal;
+  font-weight: bold;
+  font-variant: normal;
+  text-align: center;
+  border-color: #009879;
+}
+
 .grid-container {
   display: grid;
   grid-template-columns: 180px 180px 180px;
-  grid-template-rows: 50px 30px auto 30px;
   grid-column-gap: 5px;
   grid-row-gap: 5px;
 }
@@ -23,7 +34,6 @@ const char DB_STYLESHEET[] PROGMEM = R"=====(
 
 .innerbox_left{
   float:left;
-  text-align: center;
   vertical-align: middle;
   padding: 50px 0;
   margin: 5px;
@@ -34,7 +44,6 @@ const char DB_STYLESHEET[] PROGMEM = R"=====(
   padding: 5px;
   float:right;
   width: 30%;
-  text-align: center;
   vertical-align: middle;
 }
 
@@ -81,62 +90,24 @@ const char DB_STYLESHEET[] PROGMEM = R"=====(
 .footerbox  {
   grid-column: 1 / span 3;
   grid-row: 4;
-  background: #FFFFFF;
-  color: #009879;
   border-style: solid;
-  border-color: #009879;
-  font-family: verdana, sans-serif;
   font-size: 12px;
-  color: #009879;
-  font-style: normal;
-  font-weight: bold;
-  font-variant: normal;
-  text-align: center;
-  letter-spacing: 0px;
   line-height: 20px;
 }
 
 .subtitlebox {
-  background: #FFFFFF;
-  color: #009879;
   border-style: solid;
-  border-color: #009879;
-  font-family: verdana, sans-serif;
-  font-size: 16px;
-  color: #009879;
-  font-style: normal;
-  font-weight: bold;
-  font-variant: normal;
-  text-align: center;
-  letter-spacing: 0px;
-  line-height: 20px;
+  font-size: 14px;
 }
 
 .maintitlebox {
-  background: #FFFFFF;
-  color: #009879;
   border-style: solid;
-  border-color: #009879;
-  font-family: verdana, sans-serif;
   font-size: 18px;
-  color: #009879;
-  font-style: normal;
-  font-weight: bold;
-  font-variant: normal;
-  text-align: center;
-  letter-spacing: 0px;
-  line-height: 50px;
 }
 
 .contentbox_text {
-  font-family: verdana, sans-serif;
   font-size: 14px;
-  color: #FFFFFF;
-  font-style: normal;
-  font-weight: bold;
-  font-variant: normal;
   text-align: center;
-  letter-spacing: 0px;
   line-height: 30px;
 }
 
@@ -148,15 +119,14 @@ const char DB_STYLESHEET[] PROGMEM = R"=====(
   background: none!important;
   border: none;
   padding: 0!important;
-  /*optional*/
   font-family: verdana, sans-serif;
   font-size: 12px;
   font-weight: bold;
-  /*input has OS specific font-family*/
   color: #009879;
   text-decoration: underline;
   cursor: pointer;
 }
+
 
 </style>
 )=====";
