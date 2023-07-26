@@ -1,5 +1,5 @@
 /****************************************************************************************************************************
-  Remote PA Monitor - solution to remotely monitor RF power, VSWR and more of QO-100 power amplifiers
+  Remote PA Monitor - solution to remotely monitor RF power, VSWR and more of ham radio power amplifiers
 
   For Ethernet shields using WT32_ETH01 (ESP32 + LAN8720)
   Uses WebServer_WT32_ETH01, a library for the Ethernet LAN8720 in WT32_ETH01 to run WebServer
@@ -28,7 +28,7 @@
 #include "FS.h"
 #include "SPIFFS.h"
 
-String version = "0.9.4";
+String version = "1.0.0";
 
 Preferences config;
 Preferences global_config;
