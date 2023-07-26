@@ -1,6 +1,8 @@
-# wt32pamon
+# Remote Power/SWR Meter
 
-WT32-ETH0 based remote power amplifier monitor.
+This WT32/ESP32 based project, combined with a directional coupler setup, allows you to remotely monitor the output power and SWR of your station via a web browser.
+
+To achieve this, it reads two voltages which are supplied by the drectional couplers. From these, the respective power is calculated with the help of a table to be created by the user.
 
 # Warning / Disclaimer
 
