@@ -1,5 +1,5 @@
 /****************************************************************************************************************************
-  Remote PA Monitor - solution to remotely monitor RF power, VSWR and more of ham radio power amplifiers
+  Remote Power/SWR Meter - a solution to remotely measure RF power and VSWR over ethernet
 
   For Ethernet shields using WT32_ETH01 (ESP32 + LAN8720)
   Uses WebServer_WT32_ETH01, a library for the Ethernet LAN8720 in WT32_ETH01 to run WebServer
