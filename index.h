@@ -63,7 +63,7 @@ const char MAIN_page[] PROGMEM = R"=====(
   </div>
 
   <div class="footerbox">
-    <form method='post' action='config'><button class='button' value='config' name='config' type='submit'>Configuration</button> - Remote SWR/Power-Meter v<span id="version">0</span> by DK1MI</form>
+    <form method='post' action='config'><button class='button' value='config' name='config' type='submit'>Configuration</button> - Remote Power/SWR Meter v<span id="version">0</span> by DK1MI</form>
   </div>
 
 </div>
