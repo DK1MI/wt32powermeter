@@ -12,6 +12,10 @@ DO NOT MAKE THE APPLICATION PUBLICLY AVAILABLE! DO NOT EXPOSE THIS TO THE INTERN
 
 If you feel uncomfortable using the software as iz is, you are more than welcome to contribute, improve, submit PRs etc.
 
+# Download
+
+[https://codeberg.org/mclemens/wt32powermeter/archive/main.zip](https://codeberg.org/mclemens/wt32powermeter/archive/main.zip)
+
 # Documentation
 
 You can find the documentation here: [https://dk1mi.radio/remote-power-amplifier-monitor/](https://dk1mi.radio/remote-power-amplifier-monitor/)
