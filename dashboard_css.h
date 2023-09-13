@@ -88,7 +88,15 @@ body {
 }
 
 .footerbox  {
-  grid-column: 1 / span 3;
+  grid-column: 1 / span 2;
+  grid-row: 4;
+  border-style: solid;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.tempbox  {
+  grid-column: 3;
   grid-row: 4;
   border-style: solid;
   font-size: 12px;
