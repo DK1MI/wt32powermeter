@@ -4,7 +4,7 @@ This WT32/ESP32 based project, combined with a directional coupler setup, allows
 
 To achieve this, it reads two voltages which are supplied by the drectional couplers. From these, the respective power is calculated with the help of a table to be created by the user.
 
-# Changes
+# Changelog
 
 ## v1.0.2
 
