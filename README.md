@@ -14,7 +14,7 @@ To achieve this, it reads two voltages which are supplied by the drectional coup
     * requires DS18B20 sensor on pin IO14
     * display of temperature can be enabled/disabled via config page
     * display in Celsius or Fahrenheit can be toggled via config page
-    * required the installation of the following libraries:
+    * requires the installation of the following libraries:
       * OneWire
       * DallasTemperature
 
