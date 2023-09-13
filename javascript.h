@@ -254,6 +254,7 @@ function getDATA() {
       document.getElementById("VSWRValue").innerHTML = data[6];
       document.getElementById("BANDValue").innerHTML = data[8]; // displays the chosen band
       document.getElementById("AntennaName").innerHTML = data[10]; // displays the name of the antenna
+      document.getElementById("TEMPValue").innerHTML = data[21]; // displays temperature
       document.getElementById("max_led_pwr_fwd").innerHTML = data[12]; // sets the FWD LED bar max value
       document.getElementById("max_led_pwr_ref").innerHTML = data[13]; // sets the REF LED bar max value
       document.getElementById("max_led_vswr").innerHTML = data[14]; // sets the VSWR LED bar max value
