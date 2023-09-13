@@ -27,15 +27,17 @@
 #include <Preferences.h>
 #include "FS.h"
 #include "SPIFFS.h"
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
-String version = "1.0.0";
+String version = "1.0.2";
 
 Preferences config;
 Preferences global_config;
 
-String band_config_items[] = { "b_show_mV", "b_show_dBm", "b_show_watt", "s_vswr_thresh", "b_vswr_beep", "s_ant_name", "s_max_led_pwr_f", "s_max_led_pwr_r", "s_max_led_vswr", "b_show_led_fwd", "b_show_led_ref", "b_show_led_vswr", "s_cable_loss" };
-String band_config_defaults[] = { "true", "true", "true", "2", "true", " ", "100", "100", "3", "true", "true", "true", "0" };
-String band_config_nice_names[] = { "Show voltage in mV (yes/no)", "Show power level in dBm (yes/no)", "Show power in Watt (yes/no)", "VSWR threshold that triggers a warning (e.g. 3)", "Beep if VSWR threshold is exceeded (yes/no)", "Name of the antenna", "Max. FWD power displayed by LED bar graph in W (e.g. 100)", "Max. REF power displayed by LED bar graph in W (e.g. 100)", "Max. VSWR displayed by LED bar graph (e.g. 3)", "Show LED graph for FWD power (yes/no)", "Show LED graph for REF power (yes/no)", "Show LED graph for VSWR (yes/no)","Cable loss in db (e.g. 3)" };
+String band_config_items[] = { "b_show_mV", "b_show_dBm", "b_show_watt", "s_vswr_thresh", "b_vswr_beep", "s_ant_name", "s_max_led_pwr_f", "s_max_led_pwr_r", "s_max_led_vswr", "b_show_led_fwd", "b_show_led_ref", "b_show_led_vswr", "s_cable_loss", "b_power_avg", "b_show_temp", "b_celsius" };
+String band_config_defaults[] = { "true", "true", "true", "2", "true", " ", "100", "100", "3", "true", "true", "true", "0", "false", "false", "true" };
+String band_config_nice_names[] = { "Show voltage in mV (yes/no)", "Show power level in dBm (yes/no)", "Show power in Watt (yes/no)", "VSWR threshold that triggers a warning (e.g. 3)", "Beep if VSWR threshold is exceeded (yes/no)", "Name of the antenna", "Max. FWD power displayed by LED bar graph in W (e.g. 100)", "Max. REF power displayed by LED bar graph in W (e.g. 100)", "Max. VSWR displayed by LED bar graph (e.g. 3)", "Show LED graph for FWD power (yes/no)", "Show LED graph for REF power (yes/no)", "Show LED graph for VSWR (yes/no)","Cable loss in db (e.g. 3)","Display average power instead of PEP? (yes=AVG/no=PEP)", "Display Temperature? (yes/no)", "Display Temperature in C or F? (yes=C/no=F)" };
 
 double fwd_array[3300] = {};
 double ref_array[3300] = {};
@@ -57,6 +59,11 @@ String band_list[] = { "1.25cm", "3cm", "6cm", "9cm", "13cm", "23cm", "70cm", "2
 
 int IO2_FWD = 2;
 int IO4_REF = 4;
+
+const int IO14_TEMP = 14;
+
+OneWire oneWire(IO14_TEMP);
+DallasTemperature sensors(&oneWire);
 
 WebServer server(80);
 
@@ -261,15 +268,31 @@ void read_directional_couplers() {
   int voltage_sum_fwd = 0;
   int voltage_sum_ref = 0;
 
+  int voltage_fwd_max = 0;
+  int voltage_ref_max = 0;
+  int voltage_fwd_now = 0;
+  int voltage_ref_now = 0;
+
   // Takes 50 samples and sums them up
+  // figure out the highest values
   for (iii = 0; iii < 50; iii++) {
-    voltage_sum_fwd += analogReadMilliVolts(IO2_FWD);
-    voltage_sum_ref += analogReadMilliVolts(IO4_REF);
+    voltage_fwd_now = analogReadMilliVolts(IO2_FWD);
+    voltage_ref_now = analogReadMilliVolts(IO4_REF);
+    voltage_sum_fwd += voltage_fwd_now;
+    voltage_sum_ref += voltage_ref_now;
+    voltage_fwd_max = max(voltage_fwd_now, voltage_fwd_max);
+    voltage_ref_max = max(voltage_ref_now, voltage_ref_max);
   }
 
-  // calculate the average value by deviding the above sum by 50
-  voltage_fwd = voltage_sum_fwd / 50;
-  voltage_ref = voltage_sum_ref / 50;
+  if (config.getString(String("s_power_avg").c_str()) == "true") {
+    // calculate the average value by deviding the above sum by 50
+    voltage_fwd = voltage_sum_fwd / 50;
+    voltage_ref = voltage_sum_ref / 50;
+  } else {
+    // take the highest value of the 50 samples
+    voltage_fwd = voltage_fwd_max;
+    voltage_ref = voltage_ref_max;
+  }
 
   // calculate the dBm value from the voltage based on the calibration table
   fwd_dbm = millivolt_to_dbm(voltage_fwd, true);
@@ -395,7 +418,8 @@ void handleDATA() {
   output += config.getString(String("b_show_led_fwd").c_str()) + ";";   // data[17]: Show the FWD LED bar graph? (true/false)
   output += config.getString(String("b_show_led_ref").c_str()) + ";";   // data[18]: Show the REF LED bar graph? (true/false)
   output += config.getString(String("b_show_led_vswr").c_str()) + ";";  // data[19]: Show the VSWR LED bar graph? (true/false)
-  output += version;                                                    // data[20]: program version
+  output += version + ";";                                              // data[20]: program version
+  output += getTemp();                                                  // data[21]: temperature
   server.send(200, "text/plane", output);
 }
 
@@ -613,17 +637,40 @@ void handleBAND() {
   handleCONFIG();
 }
 
+
+// reads the temperature from the aboce defined sensor
+// and returns it in either C or F as a string
+String getTemp() {
+  String ret = "";
+  if (config.getString(String("b_show_temp").c_str()) == "true") {
+    String label = "Temp: ";
+    String temp_string = "--";
+    String unit = "";
+    float temp_float;
+    sensors.requestTemperatures();
+    if (config.getString(String("b_celsius").c_str()) != "false") {
+      unit = "°C";
+      temp_float = sensors.getTempCByIndex(0);
+    } else {
+      unit = "°F";
+      temp_float = sensors.getTempFByIndex(0);
+    }    
+    if (temp_float > -100){
+      temp_string = String(temp_float, 1);
+    }
+    ret = label + temp_string + unit;
+  } 
+  return ret;
+}
+
 // initialization routine
 void setup() {
 
-
   Serial.begin(115200);
 
-  //while (!Serial)
-  //  ;
+  // initialize temperature sensor
+  sensors.begin();
 
-  // Using this if Serial debugging is not necessary or not using Serial port
-  //while (!Serial && (millis() < 3000));
 
   Serial.print("\nStarting AdvancedWebServer on " + String(ARDUINO_BOARD));
   Serial.println(" with " + String(SHIELD_TYPE));
